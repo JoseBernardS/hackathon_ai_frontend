@@ -61,6 +61,7 @@ export function Home({
   const [reportOpen, setReportOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
+  const [locationHint, setLocationHint] = useState<string | null>(null)
   // 0 peek, 1 half, 2 nearly full. The map is always full height behind it.
   const [sheet, setSheet] = useState(1)
   const [sheetHeight, setSheetHeight] = useState(0)
@@ -122,6 +123,10 @@ export function Home({
     () => visible.find((s) => s.id === selectedId) ?? null,
     [visible, selectedId],
   )
+
+  useEffect(() => {
+    if (location.status === 'ok') setLocationHint(null)
+  }, [location.status])
 
   const userPoint =
     location.status === 'ok' && location.inside
@@ -270,7 +275,19 @@ export function Home({
                 down in the corner, so the one state a user could act on was
                 the one state with nothing to press. */}
             <button
-              onClick={requestLocation}
+              onClick={() => {
+                requestLocation()
+                // A denial is sticky: the browser will not prompt again, so a
+                // tap that silently does nothing reads as a broken button.
+                // Say what actually has to happen instead.
+                setLocationHint(
+                  location.status === 'denied'
+                    ? 'Location is blocked for this site. Allow it in your browser settings, then tap again.'
+                    : location.status === 'unavailable'
+                      ? 'Location needs a secure connection. Open this page over https.'
+                      : null,
+                )
+              }}
               aria-label={
                 location.status === 'ok'
                   ? 'Your location is on'
@@ -295,6 +312,17 @@ export function Home({
               )}
             </button>
           </div>
+
+          {locationHint && (
+            <div className="flex justify-end px-4">
+              <button
+                onClick={() => setLocationHint(null)}
+                className="pointer-events-auto mt-2 max-w-[260px] rounded-lg bg-surface px-3 py-2 text-left text-[12px] leading-snug text-ink-2 shadow-[0_4px_16px_rgba(0,0,0,.18)]"
+              >
+                {locationHint}
+              </button>
+            </div>
+          )}
 
           {accountOpen && (
             <>
