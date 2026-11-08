@@ -23,3 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Throwaway screenshot/debug harnesses. These are scratch files that exist
+# only while a screen is being captured or measured; one was committed once
+# and broke the production build, since tsc type-checks everything in src.
+probe.html
+src/probe.tsx
+public/__t/
