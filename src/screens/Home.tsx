@@ -19,6 +19,7 @@ import { RangePills } from '../components/RangePills'
 import { BottomSheet } from '../components/BottomSheet'
 import { SiteRecord } from '../components/SiteRecord'
 import { SiteTimeline } from '../components/SiteTimeline'
+import { FixVerdict } from '../components/FixVerdict'
 import { CategoryIcon } from '../components/CategoryIcon'
 import { ReportForum } from '../components/ReportForum'
 import { ReportFlow } from './ReportFlow'
@@ -612,6 +613,8 @@ function SiteBody({
       </header>
 
       <SiteRecord site={site} detail={detail} />
+
+      {detail && <FixVerdict site={detail} />}
 
       {detail && <SiteTimeline site={detail} />}
 

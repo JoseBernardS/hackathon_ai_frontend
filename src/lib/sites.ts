@@ -179,3 +179,63 @@ export function pressureOf(site: ApiSite): number {
 
   return Math.min(1, 0.55 * delay + 0.45 * voices)
 }
+
+// --- is it actually fixed ---------------------------------------------------
+
+export type FixState = 'still-there' | 'likely-fixed' | 'too-soon'
+
+export interface FixSignal {
+  state: FixState
+  repairedAt: string
+  /** Days since the county's most recent closure here. */
+  silenceDays: number
+  /** The longest this place has ever gone without a complaint. */
+  longestQuietDays: number
+  /** Complaints filed after that closure. Any at all means it is not fixed. */
+  reportsSince: number
+}
+
+const DAY = 86_400_000
+
+/**
+ * Whether a repair held, judged from the reporting record rather than a vote.
+ *
+ * A closed case proves only that someone filed paperwork. Asking residents to
+ * vote turns it into a popularity contest, and the people who would vote are
+ * the ones still angry. The objective signal is already in the data: a hole
+ * that is genuinely fixed stops being reported.
+ *
+ * The test is whether this place has gone quieter than it has ever been. An
+ * average interval is useless here, because 311 collects bursts of duplicate
+ * calls in the days after a hole appears, which drags any mean or median down
+ * to nearly zero. The longest gap the site has ever had is burst-proof and is
+ * also the honest bar: silence only means something once it exceeds every
+ * lull this place has had before.
+ *
+ * Null when the county has never closed anything here, because there is no
+ * repair to judge.
+ */
+export function fixSignal(detail: ApiSiteDetail): FixSignal | null {
+  const reports = [...detail.reports].sort(
+    (a, b) => +new Date(a.reportedAt) - +new Date(b.reportedAt),
+  )
+  if (reports.length < 2) return null
+
+  const closures = reports.filter((r) => r.closedAt).map((r) => +new Date(r.closedAt as string))
+  if (closures.length === 0) return null
+
+  const repaired = Math.max(...closures)
+  const times = reports.map((r) => +new Date(r.reportedAt))
+  const longestQuietDays = Math.max(...times.slice(1).map((t, i) => (t - times[i]) / DAY))
+  const silenceDays = (Date.now() - repaired) / DAY
+  const reportsSince = times.filter((t) => t > repaired).length
+
+  return {
+    state:
+      reportsSince > 0 ? 'still-there' : silenceDays > longestQuietDays ? 'likely-fixed' : 'too-soon',
+    repairedAt: new Date(repaired).toISOString(),
+    silenceDays: Math.round(silenceDays),
+    longestQuietDays: Math.round(longestQuietDays),
+    reportsSince,
+  }
+}

@@ -9,13 +9,17 @@ import api, {
 } from '../lib/api-client'
 import { CaptureCard } from '../components/CaptureCard'
 import { LoopMark } from '../components/LoopMark'
+import { readPhotoMeta, metresBetween, type PhotoMeta } from '../lib/exif'
 
-type Step = 'locating' | 'photo' | 'analysing' | 'review' | 'sending' | 'filed' | 'joined'
+type Step = 'locating' | 'photo' | 'where' | 'analysing' | 'review' | 'sending' | 'filed' | 'joined'
 
 interface Position {
   lat: number
   lng: number
 }
+
+/** Past this, the photo and the phone are not describing the same place. */
+const FAR_METRES = 150
 
 /**
  * Photograph it, check what the model made of it, then either add weight to
@@ -40,6 +44,7 @@ export function ReportFlow({
   const [step, setStep] = useState<Step>('locating')
   const [position, setPosition] = useState<Position | null>(null)
   const [photo, setPhoto] = useState<File | null>(null)
+  const [meta, setMeta] = useState<PhotoMeta | null>(null)
   const [draft, setDraft] = useState<AnalyzeResult | null>(null)
   const [filed, setFiled] = useState<CreateReportResult | null>(null)
   const [joined, setJoined] = useState<NearbyCandidate | null>(null)
@@ -74,15 +79,38 @@ export function ReportFlow({
     }
   }, [])
 
-  const analyse = async (file: File) => {
-    if (!position) return
+  /**
+   * A library photo is filed at the phone's current position unless its own
+   * metadata says otherwise, which would put the pin wherever the reporter
+   * happens to be standing. When the two disagree the user is asked, because
+   * either answer can be the right one: they may be reporting something they
+   * photographed earlier, or re-using an old photo of the place they are now.
+   */
+  const pickPhoto = async (f: File | null) => {
+    setPhoto(f)
+    setMeta(null)
+    if (!f || !position) return
+
+    const found = await readPhotoMeta(f)
+    setMeta(found)
+
+    const far =
+      found.lat !== null &&
+      found.lng !== null &&
+      metresBetween({ lat: found.lat, lng: found.lng }, position) > FAR_METRES
+
+    if (far) setStep('where')
+    else analyse(f, position)
+  }
+
+  const analyse = async (file: File, at: Position) => {
     setStep('analysing')
     setError(null)
     try {
       const result = await api.reports.analyze({
         category: category.code,
-        lat: position.lat,
-        lng: position.lng,
+        lat: at.lat,
+        lng: at.lng,
         photo: file,
       })
       setDraft(result)
@@ -178,23 +206,69 @@ export function ReportFlow({
               <CaptureCard
                 facing="environment"
                 shape="card"
+                allowLibrary
                 file={photo}
-                onPick={(f) => {
-                  setPhoto(f)
-                  if (f) analyse(f)
-                }}
+                onPick={pickPhoto}
               />
             </div>
           </div>
         )}
 
+        {step === 'where' && meta?.lat != null && meta.lng != null && position && (
+          <div>
+            <h3 className="text-[22px] font-bold leading-tight tracking-[-0.02em]">
+              Where is this problem?
+            </h3>
+            <p className="mt-1.5 text-[14px] leading-relaxed text-ink-2">
+              This photo carries its own location, and it is{' '}
+              {metresBetween({ lat: meta.lat, lng: meta.lng }, position) >= 1000
+                ? `${(metresBetween({ lat: meta.lat, lng: meta.lng }, position) / 1000).toFixed(1)} km`
+                : `${metresBetween({ lat: meta.lat, lng: meta.lng }, position)} m`}{' '}
+              from where you are.
+              {meta.takenAt &&
+                ` It was taken on ${meta.takenAt.toLocaleDateString('en-US', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })}.`}
+            </p>
+
+            <button
+              onClick={() => photo && analyse(photo, { lat: meta.lat as number, lng: meta.lng as number })}
+              className="press mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-ink text-[15px] font-medium text-white"
+            >
+              <MapPin size={17} strokeWidth={2.3} />
+              Report it where the photo was taken
+            </button>
+            <button
+              onClick={() => photo && analyse(photo, position)}
+              className="press mt-2 h-12 w-full rounded-lg bg-surface-2 text-[15px] font-medium"
+            >
+              Report it where I am now
+            </button>
+          </div>
+        )}
+
         {step === 'review' && draft && (
           <div className="space-y-5">
-            <img
-              src={draft.photo}
-              alt=""
-              className="h-44 w-full rounded-xl bg-surface-2 object-cover"
-            />
+            <div>
+              <img
+                src={draft.photo}
+                alt=""
+                className="h-44 w-full rounded-xl bg-surface-2 object-cover"
+              />
+              {/* Say what the photo could be checked for. Most phones strip
+                  this on share, so its absence is normal, not suspicious. */}
+              <p className="mt-1.5 text-[12px] text-ink-3">
+                {meta?.lat != null
+                  ? meta.takenAt
+                    ? `Photo carries its own location, taken ${meta.takenAt.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}.`
+                    : 'Photo carries its own location.'
+                  : meta?.takenAt
+                    ? `Taken ${meta.takenAt.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}. No location in the photo.`
+                    : 'No location or date in this photo, so the pin uses where you are.'}
+              </p>
+            </div>
 
             {draft.nearby.length > 0 && (
               <section>
