@@ -1,11 +1,10 @@
 import { useState, type FormEvent } from 'react'
 import { LoopMark } from '../components/LoopMark'
 import { CaptureCard } from '../components/CaptureCard'
-import { CodeForm } from '../components/CodeForm'
 import api, { ApiError, type User } from '../lib/api-client'
 
-type Step = 'selfie' | 'id' | 'phone' | 'code'
-const ORDER: Step[] = ['selfie', 'id', 'phone', 'code']
+type Step = 'selfie' | 'id' | 'details'
+const ORDER: Step[] = ['selfie', 'id', 'details']
 
 interface OnboardingProps {
   /** Prefilled when sign-in bounced the number with a 404. */
@@ -20,12 +19,28 @@ export function Onboarding({ initialPhone = '', onSignedIn, onCancel }: Onboardi
   const [selfie, setSelfie] = useState<File | null>(null)
   const [idDoc, setIdDoc] = useState<File | null>(null)
   const [rawPhone, setRawPhone] = useState(initialPhone)
-  const [phone, setPhone] = useState('')
-  const [devCode, setDevCode] = useState<string | null>(null)
+  // 311 will not take a ticket without a real name and email, so they are
+  // collected here rather than blocking the user's first report.
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [email, setEmail] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
   const index = ORDER.indexOf(step)
+
+  /**
+   * The API treats the name and email as optional, but 311 refuses a ticket
+   * without them, and that refusal surfaces at the user's first report rather
+   * than here. Requiring them now trades one more field for a report that
+   * actually reaches the county.
+   */
+  const emailLooksReal = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+  const canFinish =
+    rawPhone.replace(/\D/g, '').length >= 10 &&
+    firstName.trim().length > 0 &&
+    lastName.trim().length > 0 &&
+    emailLooksReal
 
   const fail = (err: unknown) => {
     if (err instanceof ApiError && err.status === 409) {
@@ -65,7 +80,7 @@ export function Onboarding({ initialPhone = '', onSignedIn, onCancel }: Onboardi
     setError('')
     try {
       await api.onboarding.uploadDocuments(sessionId, { idDocument: idDoc })
-      setStep('phone')
+      setStep('details')
     } catch (err) {
       fail(err)
     } finally {
@@ -73,29 +88,30 @@ export function Onboarding({ initialPhone = '', onSignedIn, onCancel }: Onboardi
     }
   }
 
-  // Step 3: phone, normalized to E.164 because the backend rejects anything else.
-  const submitPhone = async (e: FormEvent) => {
+  /**
+   * The last step. The phone number finishes the sign-up and the token comes
+   * straight back, so there is no code to confirm. E.164 because the backend
+   * rejects anything else.
+   */
+  const finish = async (e: FormEvent) => {
     e.preventDefault()
-    if (!sessionId || busy) return
-    const e164 = api.toE164(rawPhone)
+    if (!sessionId || busy || !canFinish) return
     setBusy(true)
     setError('')
     try {
-      const res = await api.onboarding.submitPhone(sessionId, e164)
-      setPhone(e164)
-      setDevCode(res.devCode ?? null)
-      setStep('code')
+      const { user } = await api.onboarding.finish(sessionId, {
+        phone: api.toE164(rawPhone),
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.trim(),
+        displayName: `${firstName.trim()} ${lastName.trim()}`,
+      })
+      onSignedIn(user) // the client stored the token
     } catch (err) {
       fail(err)
     } finally {
       setBusy(false)
     }
-  }
-
-  const verify = async (code: string) => {
-    if (!sessionId) throw new Error('Session lost. Start again.')
-    const { user } = await api.onboarding.verify(sessionId, code)
-    onSignedIn(user) // token is already stored
   }
 
   const back = () => {
@@ -183,11 +199,15 @@ export function Onboarding({ initialPhone = '', onSignedIn, onCancel }: Onboardi
           </div>
         )}
 
-        {step === 'phone' && (
-          <form onSubmit={submitPhone} className="flex min-h-0 flex-1 flex-col justify-center pb-16">
+        {step === 'details' && (
+          <form onSubmit={finish} className="flex min-h-0 flex-1 flex-col justify-center pb-16">
             <h1 className="text-[30px] font-bold leading-[1.15] tracking-[-0.03em]">
-              Enter your mobile number
+              Your details
             </h1>
+            <p className="mt-2 text-[14px] leading-relaxed text-ink-2">
+              The county needs a name and email on file before it will accept a report from you.
+            </p>
+
             <div className="mt-6 flex items-center rounded-lg bg-surface-2 px-4 focus-within:ring-2 focus-within:ring-ink">
               <span className="shrink-0 py-4 pr-3 text-[16px] font-medium text-ink-2">+1</span>
               <input
@@ -204,37 +224,58 @@ export function Onboarding({ initialPhone = '', onSignedIn, onCancel }: Onboardi
                 className="w-full bg-transparent py-4 text-[16px] outline-none placeholder:text-ink-3"
               />
             </div>
-            {rawPhone.replace(/\D/g, '').length >= 10 && (
-              <p className="mt-2 text-[13px] text-ink-3">We&apos;ll text {api.toE164(rawPhone)}</p>
+
+            <div className="mt-2 flex gap-2">
+              <input
+                type="text"
+                autoComplete="given-name"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="First name"
+                maxLength={50}
+                className="w-full rounded-lg bg-surface-2 px-4 py-4 text-[16px] outline-none focus:ring-2 focus:ring-ink placeholder:text-ink-3"
+              />
+              <input
+                type="text"
+                autoComplete="family-name"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Last name"
+                maxLength={50}
+                className="w-full rounded-lg bg-surface-2 px-4 py-4 text-[16px] outline-none focus:ring-2 focus:ring-ink placeholder:text-ink-3"
+              />
+            </div>
+
+            <input
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email"
+              className="mt-2 w-full rounded-lg bg-surface-2 px-4 py-4 text-[16px] outline-none focus:ring-2 focus:ring-ink placeholder:text-ink-3"
+            />
+
+            {email.trim().length > 0 && !emailLooksReal && (
+              <p className="mt-2 text-[13px] text-ink-3">That email does not look right.</p>
             )}
+
             {error && (
               <p role="alert" className="mt-3 text-[14px] text-danger">
                 {error}
               </p>
             )}
+
             <button
               type="submit"
-              disabled={rawPhone.replace(/\D/g, '').length < 10 || busy}
+              disabled={!canFinish || busy}
               className="press mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-ink text-[16px] font-medium text-white disabled:bg-surface-2 disabled:text-ink-3"
             >
               {busy && (
                 <span className="animate-loop size-4 rounded-full border-2 border-white/40 border-t-white" />
               )}
-              {busy ? 'Sending' : 'Send code'}
+              {busy ? 'Creating your account' : 'Create account'}
             </button>
           </form>
-        )}
-
-        {step === 'code' && (
-          <div className="flex min-h-0 flex-1 flex-col justify-center pb-16">
-            <CodeForm
-              phone={phone}
-              devCode={devCode}
-              onVerify={verify}
-              onResend={() => api.onboarding.resend(sessionId!).then(() => undefined)}
-              onChangeNumber={() => setStep('phone')}
-            />
-          </div>
         )}
 
         <p className="pb-[max(20px,env(safe-area-inset-bottom))] text-[12px] leading-relaxed text-ink-3">

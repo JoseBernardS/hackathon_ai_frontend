@@ -6,10 +6,17 @@
  */
 
 export interface User {
-  id: string
+  _id: string
   phone: string
+  status: string
   displayName?: string
-  createdAt?: string
+  firstName?: string
+  lastName?: string
+  email?: string
+  selfieKey?: string
+  idDocumentKey?: string
+  verifiedAt?: string
+  lastLoginAt?: string
 }
 
 export class ApiError extends Error {
@@ -24,21 +31,36 @@ export const auth: {
   isSignedIn(): boolean
 }
 
+export interface OnboardingDetails {
+  phone: string
+  displayName?: string
+  /** Optional to sign up, but 311 will not take a ticket without them. */
+  firstName?: string
+  lastName?: string
+  email?: string
+}
+
+export interface AuthResult {
+  token: string
+  tokenType: string
+  expiresIn: string
+  user: User
+}
+
 export const onboarding: {
-  start(): Promise<{ sessionId: string }>
+  start(): Promise<{ sessionId: string; status: string }>
   uploadDocuments(
     sessionId: string,
     files: { selfie?: File; idDocument?: File },
   ): Promise<unknown>
-  submitPhone(sessionId: string, phone: string): Promise<{ devCode?: string }>
-  resend(sessionId: string): Promise<{ devCode?: string }>
-  verify(sessionId: string, code: string): Promise<{ token: string; user: User }>
+  /** The last step: finishes sign-up and stores the token. */
+  finish(sessionId: string, details: OnboardingDetails): Promise<AuthResult>
   status(sessionId: string): Promise<unknown>
 }
 
 export const login: {
-  requestCode(phone: string): Promise<{ devCode?: string }>
-  verify(phone: string, code: string): Promise<{ token: string; user: User }>
+  /** One step, no code. Stores the token on success. */
+  withPhone(phone: string): Promise<AuthResult>
 }
 
 export const session: {
