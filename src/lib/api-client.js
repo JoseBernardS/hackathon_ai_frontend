@@ -218,7 +218,7 @@ export const reports = {
    * value. The photo is reused from the draft and is not uploaded again.
    */
   confirm: ({ category, draftId, subType, severity, description, address,
-              joinSiteId, forceNewSite } = {}) =>
+              joinSiteId, forceNewSite, preview } = {}) =>
     request('/api/reports', {
       method: 'POST',
       authed: true,
@@ -236,6 +236,9 @@ export const reports = {
         // stops geo merging it when they said it is a different problem.
         joinSiteId,
         forceNewSite,
+        // true runs the whole flow and saves nothing — for demoing without
+        // leaving pins behind. The draft survives, so it can be replayed.
+        preview,
       },
     }),
 

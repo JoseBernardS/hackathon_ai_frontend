@@ -11,10 +11,12 @@
  */
 
 import api, {
+  ApiError,
   type ApiCategory,
   type ApiSite,
   type ApiSiteDetail,
   type EffectiveStatus,
+  type VerifyResult,
 } from './api-client'
 import { getRegistry, liveCategory } from './categories'
 
@@ -119,6 +121,18 @@ export function withinRange(site: ApiSite, range: Range): boolean {
 }
 
 // --- derived facts ----------------------------------------------------------
+
+/**
+ * Whether this place is done with.
+ *
+ * One definition, used by the filter, the list tick and the map pin, so those
+ * three can never disagree about what "fixed" means. It reads the server's
+ * own grading rather than `status`, because the two differ slightly and the
+ * tone is what the rest of the UI is coloured by.
+ */
+export function isSettled(site: ApiSite): boolean {
+  return site.display.tone === 'done'
+}
 
 /** County closed the case, residents say the problem is still there. */
 export function isDisputed(site: ApiSite): boolean {
@@ -238,4 +252,63 @@ export function fixSignal(detail: ApiSiteDetail): FixSignal | null {
     longestQuietDays: Math.round(longestQuietDays),
     reportsSince,
   }
+}
+
+// --- resident verification --------------------------------------------------
+
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+
+/**
+ * Answer "was it actually fixed?" for a site.
+ *
+ * Written here rather than reached for through api-client.js, because that
+ * file is copied verbatim from the backend and does not expose this route
+ * yet. It follows the same contract: bearer token, multipart when a photo is
+ * attached, and an ApiError carrying the server's own wording.
+ *
+ * One answer per resident. Posting again replaces it, so a double tap cannot
+ * become two votes.
+ */
+export async function verifySite(
+  siteId: string,
+  { fixed, note, photo }: { fixed: boolean; note?: string; photo?: File },
+): Promise<VerifyResult> {
+  const token = api.auth.get()
+  if (!token) throw new ApiError(401, 'Sign in to answer')
+
+  const form = new FormData()
+  form.append('fixed', String(fixed))
+  if (note) form.append('note', note)
+  if (photo) form.append('photo', photo)
+
+  const res = await fetch(`${BASE_URL}/api/sites/${siteId}/verify`, {
+    method: 'POST',
+    // No Content-Type: the browser sets the multipart boundary itself.
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  })
+
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    if (res.status === 401) api.auth.clear()
+    throw new ApiError(res.status, data.error || res.statusText)
+  }
+  return data as VerifyResult
+}
+
+/** The signal in words, for a card that has no human answers on it yet. */
+export function fixSignalWording(signal: FixSignal): string {
+  const on = new Date(signal.repairedAt).toLocaleDateString('en-US', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
+  if (signal.state === 'still-there') {
+    const n = signal.reportsSince
+    return `${n} ${n === 1 ? 'complaint' : 'complaints'} since the county closed it on ${on}.`
+  }
+  if (signal.state === 'likely-fixed') {
+    return `Quiet for ${signal.silenceDays} days since ${on}, longer than it has ever gone before.`
+  }
+  return `Quiet for ${signal.silenceDays} days since ${on}, but it has gone ${signal.longestQuietDays} days without a complaint before.`
 }

@@ -299,9 +299,45 @@ export interface SiteReport {
   photoKeys?: string[]
 }
 
+/** One resident's answer, with whatever they attached to back it. */
+export interface VerificationEvidence {
+  says: 'fixed' | 'not_fixed'
+  by: string
+  at: string
+  note?: string | null
+  photo?: string | null
+}
+
+export interface Verification {
+  fixedCount: number
+  notFixedCount: number
+  /** `disputed` is a real answer, not a failure to decide. */
+  verdict: 'fixed' | 'not_fixed' | 'disputed' | null
+  /** Null when signed out, so the sign-in prompt fires on tap, not on load. */
+  yourAnswer: 'fixed' | 'not_fixed' | null
+  /** Last three who said fixed. Who voted is never returned, only counts. */
+  confirmedBy: string[]
+  /** Newest first, up to six. */
+  evidence: VerificationEvidence[]
+  endpoint: string
+}
+
+export interface VerifyResult {
+  siteId: string
+  yourAnswer: 'fixed' | 'not_fixed'
+  changedYourAnswer: boolean
+  fixedCount: number
+  notFixedCount: number
+  verdict: 'fixed' | 'not_fixed' | 'disputed' | null
+  countyStatus: string
+  photo?: string | null
+}
+
 export interface ApiSiteDetail extends ApiSite {
   reports: SiteReport[]
   progress: SiteProgress | null
+  /** Present on GET /api/sites/:id. Public; a token also fills `yourAnswer`. */
+  verification?: Verification
 }
 
 export interface NearbyMatch {

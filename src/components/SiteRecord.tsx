@@ -65,9 +65,13 @@ export function SiteRecord({ site, detail }: { site: Site; detail: SiteDetail | 
       </div>
 
       <dl className="mt-3 divide-y divide-line border-t border-line">
-        {progress?.caseNumber && <Row label="Case" value={progress.caseNumber} />}
+        {/* The case number already heads the card; repeating it here is noise.
+            Queue and department are often the same string, and printing one
+            value under two labels reads as a bug. */}
         {progress?.owner && <Row label="Queue" value={progress.owner} />}
-        {site.department && <Row label="Department" value={site.department} />}
+        {site.department && site.department !== progress?.owner && (
+          <Row label="Department" value={site.department} />
+        )}
         {(progress?.slaTarget ?? site.sla) && (
           <Row label="Target" value={(progress?.slaTarget ?? site.sla) as string} />
         )}

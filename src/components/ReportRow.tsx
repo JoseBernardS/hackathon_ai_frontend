@@ -1,4 +1,5 @@
-import type { Site } from '../lib/sites'
+import { Check } from 'lucide-react'
+import { isSettled, type Site } from '../lib/sites'
 import { ReportMeta } from './ReportMeta'
 
 /** A site in a list: photo, what it is, the standardised facts, how many
@@ -28,9 +29,16 @@ export function ReportRow({
         <span className="block truncate text-[15px] font-semibold">{title}</span>
         <ReportMeta site={site} variant="row" className="mt-0.5 max-w-full text-[13px] text-ink-3" />
       </span>
-      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-surface-2 text-[12px] font-bold">
-        {site.reportCount}
-      </span>
+      {/* A list of open problems needs to say which ones are not. */}
+      {isSettled(site) ? (
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-ink text-white">
+          <Check size={14} strokeWidth={3} />
+        </span>
+      ) : (
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-surface-2 text-[12px] font-bold">
+          {site.reportCount}
+        </span>
+      )}
     </button>
   )
 }

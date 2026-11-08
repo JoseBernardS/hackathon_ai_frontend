@@ -3,9 +3,14 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.heat'
-import { latLngOf, pressureOf, type Site } from '../lib/sites'
+import { isSettled, latLngOf, pressureOf, type Site } from '../lib/sites'
 import { iconForGroup } from './CategoryIcon'
 import { MIAMI_DADE_BOUNDS, MIAMI_DADE_CENTRE } from '../lib/geo'
+
+/** Drawn rather than imported: pin markup is an HTML string, not JSX. */
+const CHECK_SVG =
+  '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+  'stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
 
 /** Pins closer than this many screen pixels collapse into one cluster. */
 const CLUSTER_PX = 72
@@ -38,17 +43,24 @@ function pinHtml(site: Site, selected: boolean, group: string): string {
   // same thing rather than two different gradings of the same place.
   const p = pressureOf(site)
   const ring = p >= 0.75 ? '#d4342a' : p >= 0.5 ? '#f4722b' : '#fff'
+
+  // A settled place should not compete with an open one for attention. It
+  // keeps its pin, because disappearing would hide the outcome, but it steps
+  // back: desaturated, and badged with a tick instead of its category.
+  const done = isSettled(site)
+  const badgeMark = done ? CHECK_SVG : iconSvg(group, badge - 8)
   return `
     <div style="display:flex;flex-direction:column;align-items:center">
       <div style="position:relative;width:${d}px;height:${d}px">
         <img src="${photo}" alt="" loading="lazy"
              style="width:100%;height:100%;object-fit:cover;border-radius:9999px;
                     border:3px solid ${selected ? '#000' : ring};
-                    box-shadow:0 2px 8px rgba(0,0,0,.3);background:#e9e9e9" />
+                    box-shadow:0 2px 8px rgba(0,0,0,.3);background:#e9e9e9;
+                    filter:${done ? 'grayscale(1)' : 'none'};opacity:${done ? 0.75 : 1}" />
         <span style="position:absolute;right:-2px;bottom:-2px;width:${badge}px;height:${badge}px;
                      display:flex;align-items:center;justify-content:center;border-radius:9999px;
                      background:#000;color:#fff;border:2px solid #fff">
-          ${iconSvg(group, badge - 8)}
+          ${badgeMark}
         </span>
       </div>
       <div style="width:2px;height:7px;background:${selected ? '#000' : ring};

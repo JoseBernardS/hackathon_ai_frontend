@@ -8,7 +8,6 @@ import {
   RotateCw,
   MessageSquareText,
   Plus,
-  ShieldAlert,
   Users,
 } from 'lucide-react'
 import { LoopMap } from '../components/LoopMap'
@@ -19,13 +18,16 @@ import { RangePills } from '../components/RangePills'
 import { BottomSheet } from '../components/BottomSheet'
 import { SiteRecord } from '../components/SiteRecord'
 import { SiteTimeline } from '../components/SiteTimeline'
-import { FixVerdict } from '../components/FixVerdict'
+import { Verification } from '../components/Verification'
 import { CategoryIcon } from '../components/CategoryIcon'
 import { ReportForum } from '../components/ReportForum'
 import { ReportFlow } from './ReportFlow'
 import { useUserLocation } from '../lib/geo'
 import { useRegistry, liveCategory, supports } from '../lib/categories'
 import {
+  fixSignal,
+  fixSignalWording,
+  isSettled,
   listSites,
   getSite,
   latLngOf,
@@ -38,6 +40,12 @@ import {
 } from '../lib/sites'
 import api, { ApiError, type User } from '../lib/api-client'
 import { seedForum, type ForumPost } from '../lib/forum'
+
+/** The reporting record's own read, for a site nobody has answered on. */
+function fixHint(detail: SiteDetail): string | undefined {
+  const signal = fixSignal(detail)
+  return signal ? fixSignalWording(signal) : undefined
+}
 
 export function Home({
   user,
@@ -52,7 +60,9 @@ export function Home({
   // Empty means no filter, which reads as "All". Holds category codes.
   const [filters, setFilters] = useState<Set<string>>(new Set())
   const [range, setRange] = useState<Range>('all')
-  const [disputedOnly, setDisputedOnly] = useState(false)
+  // All, still open, or settled. The split is the thing people ask for
+  // first: what is outstanding, and what actually got done.
+  const [state, setState] = useState<'all' | 'open' | 'fixed'>('all')
   const [location, requestLocation] = useUserLocation()
   const registry = useRegistry()
   const category = registry ? (liveCategory(registry) ?? null) : null
@@ -88,6 +98,14 @@ export function Home({
     load()
   }, [])
 
+  /** Re-reads the site so an answer updates the record and the timeline too. */
+  const refreshDetail = () => {
+    if (!selectedId) return
+    getSite(selectedId)
+      .then(setDetail)
+      .catch(() => undefined)
+  }
+
   // The detail call is what carries the report timeline behind a pin.
   useEffect(() => {
     setDetail(null)
@@ -115,9 +133,9 @@ export function Home({
         (s) =>
           withinRange(s, range) &&
           (filters.size === 0 || filters.has(s.categoryCode)) &&
-          (!disputedOnly || s.reconciliation?.disputed),
+          (state === 'all' || (state === 'fixed') === isSettled(s)),
       ),
-    [sites, filters, range, disputedOnly],
+    [sites, filters, range, state],
   )
 
   const selected = useMemo(
@@ -147,10 +165,15 @@ export function Home({
     return list.sort((a, b) => b.reportCount - a.reportCount).slice(0, 25)
   }, [visible, userPoint])
 
-  const disputeCount = useMemo(
-    () => sites.filter((s) => s.reconciliation?.disputed).length,
-    [sites],
+  // Counted before the state filter, so the tabs can show the whole split.
+  const inRange = useMemo(
+    () =>
+      sites.filter(
+        (s) => withinRange(s, range) && (filters.size === 0 || filters.has(s.categoryCode)),
+      ),
+    [sites, filters, range],
   )
+  const settledCount = useMemo(() => inRange.filter(isSettled).length, [inRange])
 
   const postsFor = (id: string) => threads[id] ?? seedForum(id)
 
@@ -396,7 +419,9 @@ export function Home({
         {/* One stacked column, so the legend and any notice cannot collide.
             Sits above the bottom strip, which belongs to the map attribution. */}
         <div
-          className="pointer-events-none absolute inset-x-4 z-[500] flex flex-col items-start gap-2"
+          className={`pointer-events-none absolute inset-x-4 z-[500] flex flex-col items-start gap-2 ${
+            sheet >= 2 ? 'hidden' : ''
+          }`}
           style={{ bottom: sheetHeight + 12 }}
         >
           <div className="rounded-lg bg-surface/92 px-3 py-2 shadow-[0_2px_10px_rgba(0,0,0,.15)]">
@@ -425,7 +450,9 @@ export function Home({
           onClick={() => setReportOpen(true)}
           aria-label="Report a problem"
           style={{ bottom: sheetHeight + 12 }}
-          className="press absolute right-4 z-[501] flex items-center gap-2 rounded-full bg-ink py-4 pr-5 pl-4 text-white shadow-[0_6px_18px_rgba(0,0,0,.28)]"
+          className={`press absolute right-4 z-[501] flex items-center gap-2 rounded-full bg-ink py-4 pr-5 pl-4 text-white shadow-[0_6px_18px_rgba(0,0,0,.28)] ${
+            sheet >= 2 ? 'hidden' : ''
+          }`}
         >
           <Plus size={20} strokeWidth={2.6} />
           <span className="text-[15px] font-semibold tracking-[-0.01em]">Report</span>
@@ -455,13 +482,18 @@ export function Home({
               canVouch={supports(category, 'submitOutcome')}
               postCount={postsFor(selected.id).length}
               onOpenForum={() => setForumOpen(true)}
+              onVerified={refreshDetail}
             />
           </div>
         ) : (
           <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-5 pb-6">
             <div className="flex items-baseline justify-between">
               <h1 className="text-[20px] font-bold tracking-[-0.02em]">
-                {userPoint ? 'Closest to you' : 'Most reported'}
+                {state === 'fixed'
+                  ? 'Fixed'
+                  : userPoint
+                    ? 'Closest to you'
+                    : 'Most reported'}
               </h1>
               <span className="text-[13px] text-ink-3">{visible.length} shown</span>
             </div>
@@ -475,24 +507,30 @@ export function Home({
               className="mt-2.5"
             />
 
-            {disputeCount > 0 && (
-              <button
-                onClick={() => {
-                  setDisputedOnly((on) => !on)
-                  setSelectedId(null)
-                }}
-                aria-pressed={disputedOnly}
-                className={`press mt-2 flex min-h-11 w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left ${
-                  disputedOnly ? 'bg-ink text-white' : 'bg-surface-2 text-ink'
-                }`}
-              >
-                <ShieldAlert size={15} strokeWidth={2.3} className="shrink-0" />
-                <span className="text-[13px] font-semibold">
-                  {disputeCount} closed {disputeCount === 1 ? 'case residents' : 'cases residents'}{' '}
-                  say are not fixed
-                </span>
-              </button>
-            )}
+            <div className="mt-2 flex gap-1">
+              {(
+                [
+                  ['all', 'All', inRange.length],
+                  ['open', 'Open', inRange.length - settledCount],
+                  ['fixed', 'Fixed', settledCount],
+                ] as const
+              ).map(([id, label, count]) => (
+                <button
+                  key={id}
+                  onClick={() => {
+                    setState(id)
+                    setSelectedId(null)
+                  }}
+                  aria-pressed={state === id}
+                  className={`press flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-[13px] font-semibold ${
+                    state === id ? 'bg-ink text-white' : 'bg-surface-2 text-ink-2'
+                  }`}
+                >
+                  {label}
+                  <span className={state === id ? 'opacity-70' : 'text-ink-3'}>{count}</span>
+                </button>
+              ))}
+            </div>
 
             {visible.length === 0 && (
               <p className="py-10 text-center text-[15px] text-ink-2">No matches</p>
@@ -555,6 +593,7 @@ function SiteBody({
   canVouch,
   postCount,
   onOpenForum,
+  onVerified,
 }: {
   site: Site
   detail: SiteDetail | null
@@ -572,6 +611,7 @@ function SiteBody({
   canVouch: boolean
   postCount: number
   onOpenForum: () => void
+  onVerified: () => void
 }) {
   const photos = site.photos.slice(0, 4)
   // Once someone says it is being dealt with, asking whether it is done is a
@@ -581,14 +621,22 @@ function SiteBody({
   return (
     <div className="space-y-4">
       {photos.length > 0 && (
-        <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5">
+        <div
+          className={
+            photos.length === 1
+              ? ''
+              : 'no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5'
+          }
+        >
           {photos.map((src) => (
             <img
               key={src}
               src={src}
               alt=""
               loading="lazy"
-              className="h-44 w-[68%] shrink-0 rounded-xl bg-surface-2 object-cover"
+              className={`rounded-xl bg-surface-2 object-cover ${
+                photos.length === 1 ? 'h-52 w-full' : 'h-44 w-[68%] shrink-0'
+              }`}
             />
           ))}
         </div>
@@ -612,9 +660,17 @@ function SiteBody({
         />
       </header>
 
-      <SiteRecord site={site} detail={detail} />
+      {detail?.verification && (
+        <Verification
+          site={detail}
+          /* Inference fills the gap only until a human answers, and sits inside
+             the same card rather than arguing from a second one. */
+          hint={fixHint(detail)}
+          onChanged={onVerified}
+        />
+      )}
 
-      {detail && <FixVerdict site={detail} />}
+      <SiteRecord site={site} detail={detail} />
 
       {detail && <SiteTimeline site={detail} />}
 
