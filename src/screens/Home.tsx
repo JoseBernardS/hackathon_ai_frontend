@@ -13,6 +13,7 @@ import { LoopMark } from '../components/LoopMark'
 import { ReportMeta } from '../components/ReportMeta'
 import { ReportRow } from '../components/ReportRow'
 import { RangePills } from '../components/RangePills'
+import { BottomSheet } from '../components/BottomSheet'
 import { SiteRecord } from '../components/SiteRecord'
 import { SiteTimeline } from '../components/SiteTimeline'
 import { CategoryIcon } from '../components/CategoryIcon'
@@ -34,7 +35,7 @@ import {
 import api, { ApiError } from '../lib/api-client'
 import { seedForum, type ForumPost } from '../lib/forum'
 
-export function Home({ focus }: { focus: { id: string } | null }) {
+export function Home() {
   const [sites, setSites] = useState<Site[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [detail, setDetail] = useState<SiteDetail | null>(null)
@@ -49,6 +50,9 @@ export function Home({ focus }: { focus: { id: string } | null }) {
   // client change, which is the point of reading the registry.
   const categories = registry?.categories ?? []
   const [reportOpen, setReportOpen] = useState(false)
+  // 0 peek, 1 half, 2 nearly full. The map is always full height behind it.
+  const [sheet, setSheet] = useState(1)
+  const [sheetHeight, setSheetHeight] = useState(0)
   // Forum threads stay local: the backend has no endpoint for them.
   const [threads, setThreads] = useState<Record<string, ForumPost[]>>({})
   const [postVotes, setPostVotes] = useState<Set<string>>(new Set())
@@ -70,16 +74,6 @@ export function Home({ focus }: { focus: { id: string } | null }) {
   useEffect(() => {
     load()
   }, [])
-
-  // A site opened from the Community tab must not be swallowed by this
-  // screen's own filters, so they are widened to guarantee it shows.
-  useEffect(() => {
-    if (!focus) return
-    setFilters(new Set())
-    setRange('all')
-    setDisputedOnly(false)
-    setSelectedId(focus.id)
-  }, [focus])
 
   // The detail call is what carries the report timeline behind a pin.
   useEffect(() => {
@@ -211,16 +205,16 @@ export function Home({ focus }: { focus: { id: string } | null }) {
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
-      <div
-        className={`relative shrink-0 transition-[height] duration-300 ease-out ${
-          selectedId ? 'h-[36%]' : 'h-[60%]'
-        }`}
-      >
+      {/* The map is the page; the sheet floats over it. */}
+      <div className="absolute inset-0">
         <LoopMap
           sites={visible}
           group={category?.group ?? 'roads'}
           selectedId={selectedId}
-          onSelect={setSelectedId}
+          onSelect={(id) => {
+            setSelectedId(id)
+            if (id) setSheet(2)
+          }}
           user={userPoint}
           className="absolute inset-0 z-0"
         />
@@ -247,7 +241,7 @@ export function Home({ focus }: { focus: { id: string } | null }) {
                   setFilters(new Set())
                   setSelectedId(null)
                 }}
-                className={`press flex shrink-0 items-center rounded-full px-3.5 py-2 text-[13px] font-semibold shadow-[0_2px_8px_rgba(0,0,0,.16)] ${
+                className={`press flex h-11 shrink-0 items-center rounded-full px-4 text-[13px] font-semibold shadow-[0_2px_8px_rgba(0,0,0,.16)] ${
                   filters.size === 0 ? 'bg-ink text-white' : 'bg-surface text-ink'
                 }`}
               >
@@ -261,7 +255,7 @@ export function Home({ focus }: { focus: { id: string } | null }) {
                     key={entry.code}
                     onClick={() => toggle(entry.code)}
                     aria-pressed={on}
-                    className={`press flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-semibold shadow-[0_2px_8px_rgba(0,0,0,.16)] ${
+                    className={`press flex h-11 shrink-0 items-center gap-1.5 rounded-full px-4 text-[13px] font-semibold shadow-[0_2px_8px_rgba(0,0,0,.16)] ${
                       on ? 'bg-ink text-white' : 'bg-surface text-ink'
                     }`}
                   >
@@ -276,7 +270,10 @@ export function Home({ focus }: { focus: { id: string } | null }) {
 
         {/* One stacked column, so the legend and any notice cannot collide.
             Sits above the bottom strip, which belongs to the map attribution. */}
-        <div className="pointer-events-none absolute inset-x-4 bottom-12 z-[500] flex flex-col items-start gap-2">
+        <div
+          className="pointer-events-none absolute inset-x-4 z-[500] flex flex-col items-start gap-2"
+          style={{ bottom: sheetHeight + 12 }}
+        >
           {location.status !== 'ok' && (
             <div className="rounded-lg bg-surface/92 px-3 py-2 text-[12px] text-ink-2 shadow-[0_2px_10px_rgba(0,0,0,.15)]">
               {location.status === 'denied'
@@ -310,23 +307,20 @@ export function Home({ focus }: { focus: { id: string } | null }) {
         <button
           onClick={() => setReportOpen(true)}
           aria-label="Report a problem"
-          className="press absolute right-4 bottom-12 z-[501] flex items-center gap-2 rounded-full bg-ink py-3.5 pr-5 pl-4 text-white shadow-[0_6px_18px_rgba(0,0,0,.28)]"
+          style={{ bottom: sheetHeight + 12 }}
+          className="press absolute right-4 z-[501] flex items-center gap-2 rounded-full bg-ink py-4 pr-5 pl-4 text-white shadow-[0_6px_18px_rgba(0,0,0,.28)]"
         >
           <Plus size={20} strokeWidth={2.6} />
           <span className="text-[15px] font-semibold tracking-[-0.01em]">Report</span>
         </button>
       </div>
 
-      <div className="relative z-[600] -mt-5 flex min-h-0 flex-1 flex-col rounded-t-2xl bg-surface shadow-[0_-6px_20px_rgba(0,0,0,.12)]">
-        <div className="flex justify-center pt-2 pb-1">
-          <span className="h-1 w-9 rounded-full bg-surface-2" />
-        </div>
-
+      <BottomSheet index={sheet} onIndexChange={setSheet} onHeightChange={setSheetHeight}>
         {selected ? (
           <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-5 pb-6">
             <button
               onClick={() => setSelectedId(null)}
-              className="press mb-3 text-[14px] font-medium text-ink-2"
+              className="press -ml-1 mb-2 flex h-11 items-center px-1 text-[14px] font-medium text-ink-2"
             >
               Back to all
             </button>
@@ -370,7 +364,7 @@ export function Home({ focus }: { focus: { id: string } | null }) {
                   setSelectedId(null)
                 }}
                 aria-pressed={disputedOnly}
-                className={`press mt-2 flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left ${
+                className={`press mt-2 flex min-h-11 w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left ${
                   disputedOnly ? 'bg-ink text-white' : 'bg-surface-2 text-ink'
                 }`}
               >
@@ -392,14 +386,17 @@ export function Home({ focus }: { focus: { id: string } | null }) {
                   <ReportRow
                     site={site}
                     title={addressOf(site)}
-                    onClick={() => setSelectedId(site.id)}
+                    onClick={() => {
+                      setSelectedId(site.id)
+                      setSheet(2)
+                    }}
                   />
                 </li>
               ))}
             </ul>
           </div>
         )}
-      </div>
+      </BottomSheet>
 
       {forumOpen && selected && (
         <ReportForum

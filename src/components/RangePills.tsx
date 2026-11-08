@@ -18,7 +18,7 @@ export function RangePills({
           key={option.id}
           onClick={() => onChange(option.id)}
           aria-pressed={value === option.id}
-          className={`press shrink-0 rounded-full px-3 py-1.5 text-[13px] font-semibold ${
+          className={`press flex h-10 shrink-0 items-center rounded-full px-4 text-[13px] font-semibold ${
             value === option.id ? 'bg-ink text-white' : 'bg-surface-2 text-ink-2'
           }`}
         >

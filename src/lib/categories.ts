@@ -94,18 +94,6 @@ export function supports(category: Category | null, name: string): boolean {
   return Boolean(category?.endpoints?.[name])
 }
 
-/** Absolute URL for one of a category's advertised endpoints. */
-export function endpointUrl(category: Category, name: string): string {
-  const path = category.endpoints[name]
-  if (!path) throw new Error(`Category "${category.code}" advertises no "${name}" endpoint`)
-  return `${BASE_URL}${path}`
-}
-
-/** Typical time to close, from the 311 corpus rather than the demo subset. */
-export function typicalDays(category: Category): number {
-  return Math.round(category.baseline.medianDaysToClose)
-}
-
 /** One fetch per page load, shared by everything that needs the registry. */
 let pending: Promise<Registry> | null = null
 
@@ -118,10 +106,6 @@ export function getRegistry(): Promise<Registry> {
  *  this is that one; the UI reads it rather than naming it. */
 export function liveCategory(registry: Registry): Category | undefined {
   return registry.categories[0]
-}
-
-export function subtypeLabel(category: Category, code: string): string {
-  return category.subtypes.find((s) => s.code === code)?.label ?? code
 }
 
 /** The live category, once the registry has loaded. Mirrors useUserLocation

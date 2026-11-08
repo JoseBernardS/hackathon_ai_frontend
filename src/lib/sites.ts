@@ -89,13 +89,6 @@ export function titleOf(site: ApiSite, category: ApiCategory | null): string {
   return labels[0]
 }
 
-/** The rest of the subtypes, for a site that collects more than one. */
-export function otherSubtypes(site: ApiSite, category: ApiCategory | null): string[] {
-  return site.subtypes
-    .slice(1)
-    .map((code) => category?.subtypes.find((s) => s.code === code)?.label ?? code)
-}
-
 // --- time windows -----------------------------------------------------------
 // Windows are measured against the most recent report, because that is what
 // "active in the last month" means for a place rather than for one complaint.
@@ -122,24 +115,9 @@ export function withinRange(site: ApiSite, range: Range): boolean {
 
 // --- derived facts ----------------------------------------------------------
 
-/** The county closed some complaints here and more were filed afterwards. */
-export function hasClosedBefore(site: ApiSite): number {
-  return Math.max(0, site.reportCount - site.openCount)
-}
-
 /** County closed the case, residents say the problem is still there. */
 export function isDisputed(site: ApiSite): boolean {
   return site.reconciliation?.disputed ?? false
-}
-
-/**
- * Confidence is a weighting, not a probability, so it is shown in words.
- * Two sites with identical evidence differ here purely on recency.
- */
-export function confidenceWords(confidence: number): 'weak' | 'moderate' | 'strong' {
-  if (confidence < 0.3) return 'weak'
-  if (confidence <= 0.7) return 'moderate'
-  return 'strong'
 }
 
 const plural = (n: number, unit: string) => `${n} ${unit}${n === 1 ? '' : 's'} ago`
@@ -154,47 +132,4 @@ export function timeAgo(iso: string): string {
   const months = Math.round(days / 30)
   if (months < 12) return plural(months, 'month')
   return plural(Math.round(months / 12), 'year')
-}
-
-export function daysBetween(a: string, b: string): number {
-  return Math.max(0, Math.round((+new Date(b) - +new Date(a)) / 86_400_000))
-}
-
-/** Totals per municipality, busiest first. Drives the Community tab. */
-export function byMunicipality(sites: ApiSite[]) {
-  const totals = new Map<string, { name: string; sites: number; reports: number }>()
-  sites.forEach((site) => {
-    const name = placeOf(site)
-    const row = totals.get(name) ?? { name, sites: 0, reports: 0 }
-    row.sites += 1
-    row.reports += site.reportCount
-    totals.set(name, row)
-  })
-  return [...totals.values()].sort((a, b) => b.reports - a.reports)
-}
-
-// --- service level ----------------------------------------------------------
-
-/**
- * Lateness, as the server measures it.
- *
- * This used to be computed here by converting the county's business-day
- * target into calendar days at five days a week. The server now does it per
- * site against that road's own published target, which matters because a City
- * of Miami pothole has 30 business days and a county one has 90. Reading
- * `display.overdue` keeps one answer instead of two that can disagree.
- */
-export function overdueDays(site: ApiSite): number | null {
-  return site.display.overdue?.days ?? null
-}
-
-export function isOverdue(site: ApiSite): boolean {
-  return site.display.overdue !== null
-}
-
-/** Colour only, as the server grades it. */
-export type Tone = ApiSite['display']['tone']
-
-export function toneOf(site: ApiSite): Tone {
-  return site.display.tone
 }
