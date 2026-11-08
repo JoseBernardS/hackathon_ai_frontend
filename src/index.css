@@ -85,6 +85,11 @@ a {
 .no-scrollbar {
   overscroll-behavior: contain;
   scrollbar-width: none;
+  /* Declare the intent explicitly. Without it the browser has to guess from
+     the first few pixels of movement, and inside a transformed ancestor on
+     iOS it guesses wrong often enough to feel broken. */
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 
 .no-scrollbar::-webkit-scrollbar {
