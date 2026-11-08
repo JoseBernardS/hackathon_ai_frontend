@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   LocateFixed,
+  LocateOff,
+  Locate,
   Check,
   RotateCw,
   MessageSquareText,
@@ -43,7 +45,7 @@ export function Home() {
   const [filters, setFilters] = useState<Set<string>>(new Set())
   const [range, setRange] = useState<Range>('all')
   const [disputedOnly, setDisputedOnly] = useState(false)
-  const location = useUserLocation()
+  const [location, requestLocation] = useUserLocation()
   const registry = useRegistry()
   const category = registry ? (liveCategory(registry) ?? null) : null
   // Always rendered: a category enabled on the server appears here with no
@@ -227,11 +229,36 @@ export function Home() {
               <span className="text-[14px] font-bold tracking-[-0.01em]">Miami-Dade</span>
             </div>
 
-            {userPoint && (
-              <span className="pointer-events-auto flex size-10 items-center justify-center rounded-full bg-surface shadow-[0_2px_10px_rgba(0,0,0,.18)]">
-                <LocateFixed size={19} strokeWidth={2.1} className="text-[#2f6bff]" />
-              </span>
-            )}
+            {/* One control for location, where a map's locate button belongs.
+                It used to be a decorative chip that only appeared once a fix
+                had already been found, with the failure reported as a notice
+                down in the corner, so the one state a user could act on was
+                the one state with nothing to press. */}
+            <button
+              onClick={requestLocation}
+              aria-label={
+                location.status === 'ok'
+                  ? 'Your location is on'
+                  : location.status === 'locating'
+                    ? 'Finding your location'
+                    : 'Turn on your location'
+              }
+              className="press pointer-events-auto flex size-11 items-center justify-center rounded-full bg-surface shadow-[0_2px_10px_rgba(0,0,0,.18)]"
+            >
+              {location.status === 'locating' ? (
+                <span className="animate-loop size-4 rounded-full border-2 border-line border-t-ink" />
+              ) : location.status === 'ok' ? (
+                <LocateFixed
+                  size={19}
+                  strokeWidth={2.1}
+                  className={userPoint ? 'text-[#2f6bff]' : 'text-ink-3'}
+                />
+              ) : location.status === 'denied' ? (
+                <LocateOff size={19} strokeWidth={2.1} className="text-ink-3" />
+              ) : (
+                <Locate size={19} strokeWidth={2.1} className="text-ink-3" />
+              )}
+            </button>
           </div>
 
           {categories.length > 0 && (
@@ -274,16 +301,6 @@ export function Home() {
           className="pointer-events-none absolute inset-x-4 z-[500] flex flex-col items-start gap-2"
           style={{ bottom: sheetHeight + 12 }}
         >
-          {location.status !== 'ok' && (
-            <div className="rounded-lg bg-surface/92 px-3 py-2 text-[12px] text-ink-2 shadow-[0_2px_10px_rgba(0,0,0,.15)]">
-              {location.status === 'denied'
-                ? 'Location off'
-                : location.status === 'locating'
-                  ? 'Finding you'
-                  : 'Location needs HTTPS'}
-            </div>
-          )}
-
           <div className="rounded-lg bg-surface/92 px-3 py-2 shadow-[0_2px_10px_rgba(0,0,0,.15)]">
             <p className="text-[11px] font-semibold tracking-[0.04em] text-ink-2 uppercase">
               Reports per area
