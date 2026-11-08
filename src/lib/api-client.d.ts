@@ -1,0 +1,444 @@
+/**
+ * Hand-written types for api-client.js, which is copied verbatim from the
+ * backend's examples/ and must never be edited here. Keep this file in step
+ * with it: if the client gains a method, add it below rather than reaching
+ * around the client with a raw fetch.
+ */
+
+export interface User {
+  id: string
+  phone: string
+  displayName?: string
+  createdAt?: string
+}
+
+export class ApiError extends Error {
+  status: number
+  constructor(status: number, message: string)
+}
+
+export const auth: {
+  get(): string | null
+  set(token: string): void
+  clear(): void
+  isSignedIn(): boolean
+}
+
+export const onboarding: {
+  start(): Promise<{ sessionId: string }>
+  uploadDocuments(
+    sessionId: string,
+    files: { selfie?: File; idDocument?: File },
+  ): Promise<unknown>
+  submitPhone(sessionId: string, phone: string): Promise<{ devCode?: string }>
+  resend(sessionId: string): Promise<{ devCode?: string }>
+  verify(sessionId: string, code: string): Promise<{ token: string; user: User }>
+  status(sessionId: string): Promise<unknown>
+}
+
+export const login: {
+  requestCode(phone: string): Promise<{ devCode?: string }>
+  verify(phone: string, code: string): Promise<{ token: string; user: User }>
+}
+
+export const session: {
+  me(): Promise<User>
+  logout(): Promise<void>
+}
+
+// --- categories -------------------------------------------------------------
+
+export interface Subtype {
+  code: string
+  label: string
+}
+
+export interface CategoryBaseline {
+  reports: number
+  open: number
+  openRate: number
+  duplicates: number
+  meanDaysToClose: number
+  p25DaysToClose: number
+  medianDaysToClose: number
+  p75DaysToClose: number
+  p90DaysToClose: number
+}
+
+export interface CategoryLiveStats {
+  reports: number
+  userReports: number
+  sites: number
+  openSites: number
+}
+
+export interface ApiCategory {
+  code: string
+  label: string
+  group: string
+  enabled: true
+  source: string
+  dedupeRadiusMeters: number
+  subtypes: Subtype[]
+  sla: Record<string, string>
+  baseline: CategoryBaseline
+  endpoints: Record<string, string>
+  stats?: CategoryLiveStats
+}
+
+export interface BacklogCategory {
+  code: string
+  label: string
+  group: string
+  enabled: false
+  reports2026: number
+}
+
+export const categories: {
+  list(opts?: { includeBacklog?: boolean; stats?: boolean }): Promise<{
+    count: number
+    categories: ApiCategory[]
+    backlogCount?: number
+    backlog?: BacklogCategory[]
+  }>
+  get(code: string): Promise<ApiCategory>
+}
+
+// --- sites ------------------------------------------------------------------
+
+export type EffectiveStatus =
+  | 'open_unverified'
+  | 'open_confirmed'
+  | 'fixed_unrecorded'
+  | 'closed_unverified'
+  | 'fixed_confirmed'
+  | 'disputed_closure'
+  | 'contested'
+
+export type ProofGrade =
+  | 'geo_verified'
+  | 'time_verified'
+  | 'photo_only'
+  | 'none'
+  | 'geo_mismatch'
+  | 'duplicate'
+
+export interface CountyRecord {
+  status: 'open' | 'closed'
+  closedAt: string | null
+  reportCount: number
+  openCount: number
+  lastReportedAt: string | null
+  department: string | null
+  sla: string | null
+  daysToClose: number | null
+}
+
+export interface PeerRecord {
+  observations: number
+  stillThere: number
+  fixed: number
+  totalSubmitted: number
+  evidenceWeight: number
+  geoVerified: number
+  withPhoto: number
+  strongestProof: ProofGrade | null
+  lastObservedAt: string | null
+  verdict: 'still_there' | 'fixed' | 'unknown' | null
+}
+
+export interface Reconciliation {
+  effectiveStatus: EffectiveStatus
+  /** Written for display: render it, do not switch over the state. */
+  label: string
+  agreement: 'agree' | 'disagree' | 'contested' | 'unknown'
+  /** 0..1 weighting from evidence quality and recency, not a probability. */
+  confidence: number
+  disputed: boolean
+  needsVerification: boolean
+  evaluatedAt?: string
+}
+
+/** Precomputed presentation, so the client makes no status decisions. */
+export interface SiteDisplay {
+  title: string
+  subtitle: string
+  statusLabel: string
+  /** Colour only. Measured against the county's own target for that road. */
+  tone: 'ok' | 'warn' | 'critical' | 'done'
+  detail: string
+  caseNumber: string | null
+  overdue: {
+    days: number
+    targetDays: number | null
+    sla: string | null
+    expectedAt: string
+  } | null
+  action: { kind: 'report_too' | 'report_again'; label: string }
+  thumbnail: string | null
+}
+
+export interface ApiSite {
+  id: string
+  categoryCode: string
+  /** GeoJSON order: [lng, lat]. */
+  location: { type: 'Point'; coordinates: [number, number] }
+  /** Only present when the request carried lat/lng. */
+  distanceMeters?: number
+  status: 'open' | 'closed'
+  reportCount: number
+  openCount: number
+  userReportCount: number
+  daysOpen: number | null
+  firstReportedAt: string
+  lastReportedAt: string
+  oldestOpenAt: string | null
+  avgDaysToClose: number | null
+  address: string
+  municipality: string
+  department: string | null
+  sla: string | null
+  /** False where the city, not the county, maintains the road. */
+  canFileWith311?: boolean
+  latestCaseNumber: string | null
+  /** Newest first, up to 30. */
+  caseNumbers: string[]
+  subtypes: string[]
+  /** Presigned and short lived: about 15 minutes. */
+  photos: string[]
+  thumbnails: string[]
+  photoKeys: string[]
+  thumbKeys: string[]
+  display: SiteDisplay
+  /**
+   * Parked on the server: see the backend's REMOVED.md. Optional rather than
+   * removed, so restoring them server-side needs no change here.
+   */
+  county?: CountyRecord
+  peer?: PeerRecord
+  reconciliation?: Reconciliation
+}
+
+/** The county's own view of a tracked case. Null when no ticket exists. */
+export interface SiteProgress {
+  caseNumber: string
+  status: 'reported' | 'acknowledged' | 'in_progress' | 'fixed' | 'closed_unresolved'
+  /** The county's own words, e.g. "Completed" or "No Problem Found". */
+  outcome: string | null
+  statusBecause: string
+  stage: { index: number; code: string; name: string; kind: string; of: number }
+  stages: { index: number; code: string; name: string; kind: string }[]
+  owner: string | null
+  slaTarget: string | null
+  sla: {
+    expectedAt: string
+    metOnTime: boolean | null
+    /** Negative when late; null once closed. */
+    daysRemaining: number | null
+    overdue: boolean
+  } | null
+  lastUpdatedAt: string | null
+  countyPhotos: { url: string; mimeType: string; createdAt: string }[]
+  events: {
+    at: string
+    kind: 'submitted' | 'activity' | 'event' | 'closed' | 'canceled'
+    label: string
+    caseNumber?: string
+    code?: string
+    outcome?: string | null
+    comment?: string | null
+    because?: string
+    reason?: string | null
+  }[]
+  checkedAt: string | null
+}
+
+export interface SiteReport {
+  id: string
+  source: '311' | 'user'
+  sourceId: string | null
+  subType: string | null
+  status: 'open' | 'closed'
+  priority?: string
+  department?: string
+  address?: string
+  description?: string
+  reportedAt: string
+  closedAt?: string | null
+  daysToClose?: number | null
+  photoKeys?: string[]
+}
+
+export interface ApiSiteDetail extends ApiSite {
+  reports: SiteReport[]
+  progress: SiteProgress | null
+}
+
+export interface NearbyMatch {
+  id: string
+  distanceMeters: number
+  status: 'open' | 'closed'
+  reportCount: number
+}
+
+export interface NearbyResult {
+  duplicateLikely: boolean
+  radiusMeters: number
+  existingSite?: {
+    id: string
+    distanceMeters: number
+    reportCount: number
+    address: string
+    daysOpen: number | null
+  }
+  matches: NearbyMatch[]
+}
+
+export interface ProofChecks {
+  hasGps: boolean
+  gpsDistanceMeters: number | null
+  gpsMatchesSite: boolean
+  gpsToleranceMeters: number
+  takenAt: string | null
+  ageDays: number | null
+  timestampPlausible: boolean
+  takenAfterCountyClosure: boolean
+  camera: string | null
+  sha256: string
+  isDuplicate: boolean
+}
+
+export interface Proof {
+  grade: ProofGrade
+  weight: number
+  /** Display-ready wording for what was and was not verified. */
+  label: string
+  checks: ProofChecks
+}
+
+export interface Outcome {
+  id: string
+  kind: 'fixed' | 'still_there'
+  reporterName: string
+  note?: string
+  observedAt: string
+  origin?: 'seed' | 'user'
+  photos: string[]
+  thumbnails: string[]
+  proof?: Proof
+}
+
+export interface OutcomeResult {
+  outcome: Outcome
+  proof: Proof
+  site: {
+    county: CountyRecord
+    peer: PeerRecord
+    reconciliation: Reconciliation
+  }
+  countedTowardVerdict: boolean
+}
+
+export const sites: {
+  list(opts?: {
+    category?: string
+    lat?: number
+    lng?: number
+    radius?: number
+    status?: 'open' | 'closed' | 'all'
+    minReports?: number
+    limit?: number
+  }): Promise<{
+    count: number
+    dedupe: { category: string; siteRadiusMeters: number; totalSites: number; totalReports: number }
+    sites: ApiSite[]
+  }>
+  nearby(opts: {
+    category: string
+    lat: number
+    lng: number
+    radius?: number
+  }): Promise<NearbyResult>
+  stats(opts: {
+    category: string
+    lat?: number
+    lng?: number
+    radius?: number
+  }): Promise<Record<string, unknown>>
+  hotspots(opts: {
+    category: string
+    minReports?: number
+    limit?: number
+    lat?: number
+    lng?: number
+    radius?: number
+    status?: string
+  }): Promise<{ sites: ApiSite[] }>
+  get(siteId: string): Promise<ApiSiteDetail>
+}
+
+// --- reports ----------------------------------------------------------------
+
+export interface CreateReportResult {
+  report: { id: string; siteId: string; source: string; status: string; photos: string[] }
+  site: { id: string; reportCount: number; userReportCount: number }
+  mergedIntoExistingSite: boolean
+  distanceToSiteMeters: number | null
+  expectedDaysToClose: number | null
+  located?: {
+    municipality: string | null
+    department: string | null
+    sla: string | null
+    method: 'nearest_311_record' | 'none'
+    distanceMeters: number | null
+    confident: boolean
+  }
+  /** The county filing happens in this same call; there is no submit step. */
+  filedWith311?: {
+    filed: boolean
+    /** True while the server is in dry run: say "ready to file", not "filed". */
+    dryRun: boolean
+    alreadyFiled: boolean
+    reason: string | null
+    caseNumber: string | null
+    eligibility?: { eligible: boolean; municipality: string | null; reason: string }
+  }
+}
+
+export const reports: {
+  create(body: {
+    category: string
+    lat: number
+    lng: number
+    subType?: string
+    description?: string
+    address?: string
+    photo?: File
+  }): Promise<CreateReportResult>
+  mine(opts?: { category?: string }): Promise<{ reports: SiteReport[] }>
+}
+
+// --- helpers ----------------------------------------------------------------
+
+export function toE164(input: string, defaultCountryCode?: string): string
+
+export function getPosition(opts?: {
+  timeout?: number
+  highAccuracy?: boolean
+}): Promise<{ lat: number; lng: number; accuracy: number }>
+
+export function inMiamiDade(point: { lat: number; lng: number }): boolean
+
+declare const api: {
+  onboarding: typeof onboarding
+  login: typeof login
+  session: typeof session
+  categories: typeof categories
+  sites: typeof sites
+  reports: typeof reports
+  auth: typeof auth
+  toE164: typeof toE164
+  getPosition: typeof getPosition
+  inMiamiDade: typeof inMiamiDade
+}
+export default api

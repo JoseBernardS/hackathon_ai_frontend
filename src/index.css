@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --color-ink: #000000;
+  --color-ink-2: #545454;
+  --color-ink-3: #8a8a8a;
+  --color-surface: #ffffff;
+  --color-surface-2: #f6f6f6;
+  --color-line: #e2e2e2;
+  --color-loop: #0e9f6e;
+  --color-danger: #d44333;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a {
+  touch-action: manipulation;
+}
+
+@utility press {
+  transition: transform 120ms ease, opacity 120ms ease;
+  &:active {
+    transform: scale(0.97);
+    opacity: 0.9;
+  }
+}
+
+@keyframes loop-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@utility animate-loop {
+  animation: loop-spin 1s linear infinite;
+}
+
+/* Basemap treatment: desaturate OSM's default palette so the heat layer and
+   pins carry the colour, closer to a purpose-built light basemap. */
+.leaflet-tile-pane {
+  filter: saturate(0.08) brightness(1.1) contrast(0.88);
+}
+
+/* Keep OSM attribution clear of the sheet that overlaps the map. */
+.leaflet-bottom.leaflet-right {
+  bottom: 26px;
+}
+
+.leaflet-control-attribution {
+  font-size: 9px;
+  background: rgba(255, 255, 255, 0.72);
+}
