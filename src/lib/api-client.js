@@ -181,6 +181,13 @@ export const reports = {
    * `ai.available: false` means the model could not be reached; `proposal` is
    * then mostly empty and the user fills the form in themselves. Render the
    * same screen either way.
+   *
+   * The response also carries `nearby[]` — open problems within 150m, each with
+   * a `thumbnail`, `distanceMeters`, `reportCount`, `totalVoices` and
+   * `statusLabel`. Show them as "Is it one of these?" cards:
+   *   yes  -> reports.affectsMe(siteId)
+   *   no   -> reports.confirm({ ..., forceNewSite: true })
+   * The user decides, not the server — they are standing in front of it.
    */
   analyze: ({ category, lat, lng, address, photo } = {}) => {
     const form = new FormData();
@@ -193,14 +200,25 @@ export const reports = {
   },
 
   /**
-   * Step 2: file the draft the user just agreed to.
+   * Step 2a: the user said "yes, it's that one".
+   *
+   * Adds their weight to the existing site. Files nothing, creates no pin, no
+   * second 311 case. Idempotent — a double tap is the same as one.
+   * `siteId` comes from a `nearby[]` entry on the analyze response.
+   */
+  affectsMe: (siteId) =>
+    request(`/api/sites/${siteId}/affects-me`, { method: 'POST', authed: true }),
+
+  /**
+   * Step 2b: file the draft the user just agreed to.
    *
    * `confirmed` and `consent` must both be true — filing sends the user's name,
    * email and phone to a public county case, so the API will not assume either.
    * Send back only the fields they changed; anything omitted keeps the AI's
    * value. The photo is reused from the draft and is not uploaded again.
    */
-  confirm: ({ category, draftId, subType, severity, description, address } = {}) =>
+  confirm: ({ category, draftId, subType, severity, description, address,
+              joinSiteId, forceNewSite } = {}) =>
     request('/api/reports', {
       method: 'POST',
       authed: true,
@@ -213,6 +231,11 @@ export const reports = {
         severity,
         description,
         address,
+        // The user's answer to "is it one of these?". `joinSiteId` attaches to
+        // that site even if it is outside the dedupe radius; `forceNewSite`
+        // stops geo merging it when they said it is a different problem.
+        joinSiteId,
+        forceNewSite,
       },
     }),
 

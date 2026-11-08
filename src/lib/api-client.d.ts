@@ -232,6 +232,13 @@ export interface ApiSite {
   photoKeys: string[]
   thumbKeys: string[]
   display: SiteDisplay
+  /** Present on GET /api/sites/:id. Public: no token reads as not endorsed. */
+  endorsement?: {
+    endorsementCount: number
+    totalVoices: number
+    youEndorsed: boolean
+    endpoint: string
+  }
   /**
    * Parked on the server: see the backend's REMOVED.md. Optional rather than
    * removed, so restoring them server-side needs no change here.
@@ -402,8 +409,19 @@ export const sites: {
 // --- reports ----------------------------------------------------------------
 
 export interface CreateReportResult {
-  report: { id: string; siteId: string; source: string; status: string; photos: string[] }
-  site: { id: string; reportCount: number; userReportCount: number }
+  report: {
+    id: string
+    siteId: string
+    source: string
+    status: string
+    severity?: number
+    /** True when the draft came from the model at all. */
+    aiAssisted?: boolean
+    /** True only if the resident actually changed something. */
+    aiEdited?: boolean
+    photos: string[]
+  }
+  site: { id: string; reportCount: number; userReportCount?: number; totalVoices?: number }
   mergedIntoExistingSite: boolean
   distanceToSiteMeters: number | null
   expectedDaysToClose: number | null
@@ -423,11 +441,90 @@ export interface CreateReportResult {
     alreadyFiled: boolean
     reason: string | null
     caseNumber: string | null
-    eligibility?: { eligible: boolean; municipality: string | null; reason: string }
+    eligibility?: {
+      eligible: boolean
+      municipality?: string | null
+      reason?: string
+      serviceCode?: string
+      street?: string
+      maintLabel?: string
+      roadOwner?: string
+    }
   }
 }
 
+/** One open problem already on the map, close enough to be the same thing. */
+export interface NearbyCandidate {
+  siteId: string
+  distanceMeters: number
+  reportCount: number
+  endorsementCount: number
+  /** reportCount + endorsementCount. The number to put on the card. */
+  totalVoices: number
+  address: string
+  statusLabel: string
+  thumbnail: string | null
+}
+
+export interface AnalyzeResult {
+  draftId: string
+  expiresInHours: number
+  photo: string
+  location: { lat: number; lng: number }
+  ai: {
+    available: boolean
+    reason: string | null
+    model: string | null
+    /** False when the model thinks the photo is not this category. */
+    looksLikeCategory: boolean
+    confidence: number
+    rejectionReason: string | null
+  }
+  proposal: {
+    subType: string
+    severity: number
+    description: string
+    hazards: string[]
+  }
+  subtypeOptions: Subtype[]
+  /** Open problems within 150m, nearest first, at most three. */
+  nearby: NearbyCandidate[]
+}
+
+export interface AffectsMeResult {
+  siteId: string
+  endorsed: boolean
+  alreadyEndorsed: boolean
+  endorsementCount: number
+  reportCount: number
+  totalVoices: number
+}
+
 export const reports: {
+  /** Step 1: the photo and where it was taken. Nothing is filed by this. */
+  analyze(body: {
+    category: string
+    lat: number
+    lng: number
+    address?: string
+    photo: File
+  }): Promise<AnalyzeResult>
+
+  /** Step 2a: "yes, it is that one". Files nothing; idempotent. */
+  affectsMe(siteId: string): Promise<AffectsMeResult>
+
+  /** Step 2b: file the draft. Only send fields the user actually changed. */
+  confirm(body: {
+    category: string
+    draftId: string
+    subType?: string
+    severity?: number
+    description?: string
+    address?: string
+    joinSiteId?: string
+    forceNewSite?: boolean
+  }): Promise<CreateReportResult>
+
   create(body: {
     category: string
     lat: number

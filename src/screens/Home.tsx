@@ -59,10 +59,10 @@ export function Home() {
   const [threads, setThreads] = useState<Record<string, ForumPost[]>>({})
   const [postVotes, setPostVotes] = useState<Set<string>>(new Set())
   const [forumOpen, setForumOpen] = useState(false)
-  // "Affects me too" and the fixed/still-there verdicts. Local state, as they
-  // have been from the start; the affects tap also files a real report when
-  // the user is signed in, which is what makes the count move.
-  const [affects, setAffects] = useState<Set<string>>(new Set())
+  // Endorsement comes back on the site detail, so the button renders pressed
+  // for someone who already added their voice on another device.
+  const [endorsed, setEndorsed] = useState(false)
+  const [voices, setVoices] = useState<number | null>(null)
   const [verdicts, setVerdicts] = useState<Record<string, 'fixed' | 'still'>>({})
   const [vouchNote, setVouchNote] = useState<string | null>(null)
 
@@ -81,10 +81,17 @@ export function Home() {
   useEffect(() => {
     setDetail(null)
     setVouchNote(null)
+    setEndorsed(false)
+    setVoices(null)
     if (!selectedId) return
     let live = true
     getSite(selectedId)
-      .then((d) => live && setDetail(d))
+      .then((d) => {
+        if (!live) return
+        setDetail(d)
+        setEndorsed(d.endorsement?.youEndorsed ?? false)
+        setVoices(d.endorsement?.totalVoices ?? null)
+      })
       .catch(() => live && setDetail(null))
     return () => {
       live = false
@@ -172,28 +179,26 @@ export function Home() {
    * into this site, so the count moves and no second pin appears. A duplicate
    * is still evidence the problem was never fixed.
    */
-  const toggleAffects = async (site: Site) => {
-    const already = affects.has(site.id)
-    setAffects((prev) => {
-      const next = new Set(prev)
-      if (already) next.delete(site.id)
-      else next.add(site.id)
-      return next
-    })
-    if (already || !api.auth.isSignedIn()) return
-
-    const [lat, lng] = latLngOf(site)
+  /**
+   * "Affects me too" now has its own endpoint. It used to file a second
+   * report, which put a duplicate case in front of the county just to record
+   * that one more person was affected. Endorsing files nothing: no pin, no
+   * 311 case, no photo. It is idempotent, so a double tap is one voice.
+   */
+  const affectsMe = async (site: Site) => {
+    if (endorsed) return
+    if (!api.auth.isSignedIn()) {
+      setVouchNote('Sign in to add your voice.')
+      return
+    }
+    // Optimistic: the call is idempotent, so a failure costs nothing to undo.
+    setEndorsed(true)
     try {
-      await api.reports.create({
-        category: site.categoryCode,
-        lat,
-        lng,
-        address: site.address,
-      })
-      setVouchNote('Added to this report')
-      load()
+      const res = await api.reports.affectsMe(site.id)
+      setVoices(res.totalVoices)
     } catch (err) {
-      setVouchNote(err instanceof ApiError ? err.message : 'Could not add that')
+      setEndorsed(false)
+      setVouchNote(err instanceof ApiError ? err.message : 'Could not add your voice')
     }
   }
 
@@ -346,8 +351,9 @@ export function Home() {
               site={selected}
               detail={detail}
               title={titleOf(selected, category)}
-              affected={affects.has(selected.id)}
-              onAffects={() => toggleAffects(selected)}
+              affected={endorsed}
+              voices={voices}
+              onAffects={() => affectsMe(selected)}
               verdict={verdicts[selected.id]}
               onVerdict={(next) => setVerdict(selected.id, next)}
               note={vouchNote}
@@ -446,6 +452,7 @@ function SiteBody({
   detail,
   title,
   affected,
+  voices,
   onAffects,
   verdict,
   onVerdict,
@@ -458,6 +465,8 @@ function SiteBody({
   detail: SiteDetail | null
   title: string
   affected: boolean
+  /** Reports plus endorsements, once the detail has loaded. */
+  voices: number | null
   onAffects: () => void
   verdict: 'fixed' | 'still' | undefined
   onVerdict: (next: 'fixed' | 'still') => void
@@ -522,7 +531,8 @@ function SiteBody({
             }`}
           >
             <Users size={17} strokeWidth={2.3} />
-            {affected ? 'Affects you too' : 'Affects me too'}
+            {affected ? 'You are counted' : 'Affects me too'}
+            {voices !== null && <span className="opacity-70">{voices}</span>}
           </button>
 
           <button
