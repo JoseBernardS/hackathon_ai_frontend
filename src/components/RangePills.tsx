@@ -12,15 +12,13 @@ export function RangePills({
   className?: string
 }) {
   return (
-    <div className={`no-scrollbar flex gap-1.5 overflow-x-auto pb-0.5 ${className}`}>
+    <div className={`segbar ${className}`}>
       {RANGES.map((option) => (
         <button
           key={option.id}
           onClick={() => onChange(option.id)}
           aria-pressed={value === option.id}
-          className={`press flex h-10 shrink-0 items-center rounded-full px-4 text-[13px] font-semibold ${
-            value === option.id ? 'bg-ink text-white' : 'bg-surface-2 text-ink-2'
-          }`}
+          className="press seg"
         >
           {option.label}
         </button>

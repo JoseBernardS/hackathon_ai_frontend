@@ -53,7 +53,7 @@ export function SignIn({ onNeedsOnboarding, onSignedIn }: SignInProps) {
                 Enter your mobile number
               </h2>
 
-              <div className="mt-5 flex items-center rounded-lg bg-surface-2 px-4 focus-within:ring-2 focus-within:ring-ink">
+              <div className="mt-5 flex items-center rounded-btn bg-surface-2 px-4 focus-within:ring-2 focus-within:ring-ink">
                 <span className="shrink-0 py-4 pr-3 text-[16px] font-medium text-ink-2">+1</span>
                 <input
                   type="tel"
@@ -86,7 +86,7 @@ export function SignIn({ onNeedsOnboarding, onSignedIn }: SignInProps) {
               <button
                 type="submit"
                 disabled={digits.length < 10 || busy}
-                className="press mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-ink text-[16px] font-medium text-white disabled:bg-surface-2 disabled:text-ink-3"
+                className="press mt-4 flex h-[52px] w-full items-center justify-center gap-2 rounded-btn bg-ink text-[16px] font-medium text-white disabled:bg-surface-2 disabled:text-ink-3"
               >
                 {busy && (
                   <span className="animate-loop size-4 rounded-full border-2 border-white/40 border-t-white" />

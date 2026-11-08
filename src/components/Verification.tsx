@@ -4,7 +4,9 @@ import { CaptureCard } from './CaptureCard'
 import { verifySite, type SiteDetail } from '../lib/sites'
 import { ApiError, type Verification as VerificationData } from '../lib/api-client'
 
-const DISAGREE = '#d4342a'
+const DISAGREE = '#b4453a'
+/** The prototype's one semantic colour: an agency actually answered. */
+const ANSWERED = '#1f7a6b'
 
 const ago = (iso: string) => {
   const days = Math.round((Date.now() - +new Date(iso)) / 86_400_000)
@@ -100,14 +102,18 @@ export function Verification({
   const contradiction = countyClosed && verdict === 'not_fixed'
 
   return (
-    <section className="rounded-xl border border-line p-4">
+    <section className="tile">
       {/* The two records, side by side and never merged. Agreement is a quiet
           tick; disagreement is the headline, because that contradiction is
           the thing the county's own system cannot produce. */}
       <div className="flex items-center gap-2">
         <span
           className={`flex size-6 shrink-0 items-center justify-center rounded-full ${
-            contradiction || verdict === 'disputed' ? 'text-white' : 'bg-surface-2 text-ink-2'
+            contradiction || verdict === 'disputed'
+              ? 'text-white'
+              : verdict === 'fixed'
+                ? 'bg-answered-bg text-answered'
+                : 'bg-surface-2 text-ink-2'
           }`}
           style={contradiction || verdict === 'disputed' ? { background: DISAGREE } : undefined}
         >
@@ -119,7 +125,7 @@ export function Verification({
             <Users size={13} strokeWidth={2.4} />
           )}
         </span>
-        <span className="text-[11px] font-semibold tracking-[0.06em] text-ink-3 uppercase">
+        <span className="text-[12.5px] leading-[17px] font-semibold text-ink-3">
           {contradiction
             ? 'County and residents disagree'
             : verdict === 'disputed'
@@ -132,7 +138,13 @@ export function Verification({
 
       <p
         className="mt-2 text-[18px] leading-snug font-bold tracking-[-0.015em]"
-        style={contradiction || verdict === 'disputed' ? { color: DISAGREE } : undefined}
+        style={
+          contradiction || verdict === 'disputed'
+            ? { color: DISAGREE }
+            : verdict === 'fixed'
+              ? { color: ANSWERED }
+              : undefined
+        }
       >
         {headline}
       </p>
@@ -178,8 +190,8 @@ export function Verification({
           onClick={() => answer(true)}
           disabled={busy !== null}
           aria-pressed={yourAnswer === 'fixed'}
-          className={`press flex h-11 flex-1 items-center justify-center gap-2 rounded-lg text-[15px] font-medium disabled:opacity-50 ${
-            yourAnswer === 'fixed' ? 'bg-ink text-white' : 'bg-surface-2 text-ink'
+          className={`press flex h-11 flex-1 items-center justify-center gap-2 rounded-btn text-[15px] font-medium disabled:opacity-50 ${
+            yourAnswer === 'fixed' ? 'bg-ink text-white' : 'bg-surface text-ink shadow-e1'
           }`}
         >
           <Check size={16} strokeWidth={2.4} />
@@ -189,8 +201,8 @@ export function Verification({
           onClick={() => answer(false)}
           disabled={busy !== null}
           aria-pressed={yourAnswer === 'not_fixed'}
-          className={`press flex h-11 flex-1 items-center justify-center gap-2 rounded-lg text-[15px] font-medium disabled:opacity-50 ${
-            yourAnswer === 'not_fixed' ? 'bg-ink text-white' : 'bg-surface-2 text-ink'
+          className={`press flex h-11 flex-1 items-center justify-center gap-2 rounded-btn text-[15px] font-medium disabled:opacity-50 ${
+            yourAnswer === 'not_fixed' ? 'bg-ink text-white' : 'bg-surface text-ink shadow-e1'
           }`}
         >
           <X size={16} strokeWidth={2.4} />
@@ -213,7 +225,7 @@ export function Verification({
       )}
 
       {yourAnswer && attaching && (
-        <div className="mt-3 rounded-lg bg-surface-2 p-3">
+        <div className="mt-3 rounded-btn bg-surface p-3 shadow-e1">
           <p className="text-[13px] font-semibold">
             Show {yourAnswer === 'fixed' ? 'the repaired road' : 'what is still there'}
           </p>
@@ -232,7 +244,7 @@ export function Verification({
             rows={2}
             maxLength={500}
             placeholder="What can you see? Optional."
-            className="mt-2 w-full resize-none rounded-lg bg-surface px-3 py-2.5 text-[14px] outline-none placeholder:text-ink-3"
+            className="mt-2 w-full resize-none rounded-btn bg-surface-2 px-3 py-2.5 text-[14px] outline-none placeholder:text-ink-3"
           />
           <div className="mt-2 flex gap-2">
             <button
@@ -243,7 +255,7 @@ export function Verification({
                 })
               }
               disabled={busy !== null || (!photo && !note.trim())}
-              className="press h-11 flex-1 rounded-lg bg-ink text-[14px] font-medium text-white disabled:opacity-40"
+              className="press h-11 flex-1 rounded-btn bg-ink text-[14px] font-medium text-white disabled:opacity-40"
             >
               {busy ? 'Sending' : 'Attach to my answer'}
             </button>
@@ -253,7 +265,7 @@ export function Verification({
                 setPhoto(null)
                 setNote('')
               }}
-              className="press h-11 rounded-lg px-4 text-[14px] font-medium text-ink-2"
+              className="press h-11 rounded-btn px-4 text-[14px] font-medium text-ink-2"
             >
               Cancel
             </button>
@@ -270,10 +282,10 @@ export function Verification({
                   src={item.photo}
                   alt=""
                   loading="lazy"
-                  className="size-14 shrink-0 rounded-lg bg-surface-2 object-cover"
+                  className="size-14 shrink-0 rounded-btn bg-surface-2 object-cover"
                 />
               ) : (
-                <span className="flex size-14 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-ink-3">
+                <span className="flex size-14 shrink-0 items-center justify-center rounded-btn bg-surface-2 text-ink-3">
                   <Users size={16} strokeWidth={2.2} />
                 </span>
               )}
@@ -285,7 +297,7 @@ export function Verification({
                     style={
                       item.says === 'not_fixed'
                         ? { background: DISAGREE, color: '#fff' }
-                        : { background: '#f6f6f6', color: '#545454' }
+                        : { background: '#e8f4f1', color: '#1f7a6b' }
                     }
                   >
                     {item.says === 'fixed' ? 'fixed' : 'still there'}

@@ -57,8 +57,8 @@ export function SiteTimeline({ site }: { site: SiteDetail }) {
   const closed = site.reports.filter((r) => r.closedAt).length
 
   return (
-    <section className="rounded-xl border border-line p-4">
-      <h3 className="text-[15px] font-semibold">Reported since {monthLabel(monthKey(dates[0]))}</h3>
+    <section className="tile">
+      <h3 className="text-[18px] leading-[24px] font-bold tracking-[-0.01em] text-heading">Reported since {monthLabel(monthKey(dates[0]))}</h3>
       <p className="mt-0.5 text-[12px] text-ink-3">
         {site.reports.length} {site.reports.length === 1 ? 'complaint' : 'complaints'},{' '}
         {closed === 0 ? 'none closed' : `${closed} closed`}

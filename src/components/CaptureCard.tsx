@@ -177,7 +177,7 @@ export function CaptureCard({
   const frame =
     shape === 'circle'
       ? 'aspect-square rounded-full max-w-[260px] mx-auto'
-      : 'aspect-[1.586/1] rounded-xl w-full' // ID-1 card ratio
+      : 'aspect-[1.586/1] rounded-card w-full' // ID-1 card ratio
 
   return (
     <div>
@@ -271,7 +271,7 @@ export function CaptureCard({
             type="button"
             onClick={fallback ? () => inputRef.current?.click() : shoot}
             disabled={!fallback && !ready}
-            className="press mt-4 flex h-12 w-full items-center justify-center rounded-lg bg-ink text-[16px] font-medium text-white disabled:bg-surface-2 disabled:text-ink-3"
+            className="press mt-4 flex h-12 w-full items-center justify-center rounded-btn bg-ink text-[16px] font-medium text-white disabled:bg-surface-2 disabled:text-ink-3"
           >
             {fallback || ready ? 'Take photo' : 'Starting camera'}
           </button>
@@ -280,7 +280,7 @@ export function CaptureCard({
             <button
               type="button"
               onClick={() => libraryRef.current?.click()}
-              className="press mt-2 flex h-12 w-full items-center justify-center rounded-lg bg-surface-2 text-[16px] font-medium"
+              className="press mt-2 flex h-12 w-full items-center justify-center rounded-btn bg-surface-2 text-[16px] font-medium"
             >
               Choose from photos
             </button>

@@ -128,7 +128,7 @@ export function Onboarding({ initialPhone = '', onSignedIn, onCancel }: Onboardi
       type="button"
       onClick={onClick}
       disabled={!enabled || busy}
-      className="press mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-ink text-[16px] font-medium text-white disabled:bg-surface-2 disabled:text-ink-3"
+      className="press mt-4 flex h-[52px] w-full items-center justify-center gap-2 rounded-btn bg-ink text-[16px] font-medium text-white disabled:bg-surface-2 disabled:text-ink-3"
     >
       {busy && (
         <span className="animate-loop size-4 rounded-full border-2 border-white/40 border-t-white" />
@@ -208,7 +208,7 @@ export function Onboarding({ initialPhone = '', onSignedIn, onCancel }: Onboardi
               The county needs a name and email on file before it will accept a report from you.
             </p>
 
-            <div className="mt-6 flex items-center rounded-lg bg-surface-2 px-4 focus-within:ring-2 focus-within:ring-ink">
+            <div className="mt-6 flex items-center rounded-btn bg-surface-2 px-4 focus-within:ring-2 focus-within:ring-ink">
               <span className="shrink-0 py-4 pr-3 text-[16px] font-medium text-ink-2">+1</span>
               <input
                 type="tel"
@@ -233,7 +233,7 @@ export function Onboarding({ initialPhone = '', onSignedIn, onCancel }: Onboardi
                 onChange={(e) => setFirstName(e.target.value)}
                 placeholder="First name"
                 maxLength={50}
-                className="w-full rounded-lg bg-surface-2 px-4 py-4 text-[16px] outline-none focus:ring-2 focus:ring-ink placeholder:text-ink-3"
+                className="w-full rounded-btn bg-surface-2 px-4 py-4 text-[16px] outline-none focus:ring-2 focus:ring-ink placeholder:text-ink-3"
               />
               <input
                 type="text"
@@ -242,7 +242,7 @@ export function Onboarding({ initialPhone = '', onSignedIn, onCancel }: Onboardi
                 onChange={(e) => setLastName(e.target.value)}
                 placeholder="Last name"
                 maxLength={50}
-                className="w-full rounded-lg bg-surface-2 px-4 py-4 text-[16px] outline-none focus:ring-2 focus:ring-ink placeholder:text-ink-3"
+                className="w-full rounded-btn bg-surface-2 px-4 py-4 text-[16px] outline-none focus:ring-2 focus:ring-ink placeholder:text-ink-3"
               />
             </div>
 
@@ -252,7 +252,7 @@ export function Onboarding({ initialPhone = '', onSignedIn, onCancel }: Onboardi
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Email"
-              className="mt-2 w-full rounded-lg bg-surface-2 px-4 py-4 text-[16px] outline-none focus:ring-2 focus:ring-ink placeholder:text-ink-3"
+              className="mt-2 w-full rounded-btn bg-surface-2 px-4 py-4 text-[16px] outline-none focus:ring-2 focus:ring-ink placeholder:text-ink-3"
             />
 
             {email.trim().length > 0 && !emailLooksReal && (
@@ -268,7 +268,7 @@ export function Onboarding({ initialPhone = '', onSignedIn, onCancel }: Onboardi
             <button
               type="submit"
               disabled={!canFinish || busy}
-              className="press mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-ink text-[16px] font-medium text-white disabled:bg-surface-2 disabled:text-ink-3"
+              className="press mt-4 flex h-[52px] w-full items-center justify-center gap-2 rounded-btn bg-ink text-[16px] font-medium text-white disabled:bg-surface-2 disabled:text-ink-3"
             >
               {busy && (
                 <span className="animate-loop size-4 rounded-full border-2 border-white/40 border-t-white" />

@@ -287,7 +287,7 @@ export function Home({
               onClick={() => setAccountOpen((open) => !open)}
               aria-expanded={accountOpen}
               aria-label="Account"
-              className="press pointer-events-auto flex h-11 items-center gap-2 rounded-full bg-surface px-3 shadow-[0_2px_10px_rgba(0,0,0,.18)]"
+              className="press pointer-events-auto flex h-11 items-center gap-2 rounded-full bg-surface px-3 shadow-e1"
             >
               <LoopMark size={20} />
               <span className="text-[14px] font-bold tracking-[-0.01em]">Miami-Dade</span>
@@ -319,7 +319,7 @@ export function Home({
                     ? 'Finding your location'
                     : 'Turn on your location'
               }
-              className="press pointer-events-auto flex size-11 items-center justify-center rounded-full bg-surface shadow-[0_2px_10px_rgba(0,0,0,.18)]"
+              className="press pointer-events-auto flex size-11 items-center justify-center rounded-full bg-surface shadow-e1"
             >
               {location.status === 'locating' ? (
                 <span className="animate-loop size-4 rounded-full border-2 border-line border-t-ink" />
@@ -327,7 +327,7 @@ export function Home({
                 <LocateFixed
                   size={19}
                   strokeWidth={2.1}
-                  className={userPoint ? 'text-[#2f6bff]' : 'text-ink-3'}
+                  className={userPoint ? 'text-[#297ca3]' : 'text-ink-3'}
                 />
               ) : location.status === 'denied' ? (
                 <LocateOff size={19} strokeWidth={2.1} className="text-ink-3" />
@@ -341,7 +341,7 @@ export function Home({
             <div className="flex justify-end px-4">
               <button
                 onClick={() => setLocationHint(null)}
-                className="pointer-events-auto mt-2 max-w-[260px] rounded-lg bg-surface px-3 py-2 text-left text-[12px] leading-snug text-ink-2 shadow-[0_4px_16px_rgba(0,0,0,.18)]"
+                className="pointer-events-auto mt-2 max-w-[260px] rounded-btn bg-surface px-3 py-2 text-left text-[12px] leading-snug text-ink-2 shadow-e2"
               >
                 {locationHint}
               </button>
@@ -355,8 +355,8 @@ export function Home({
                 aria-label="Close account menu"
                 className="pointer-events-auto fixed inset-0 z-[-1] cursor-default"
               />
-              <div className="pointer-events-auto mx-4 mt-2 w-[min(280px,calc(100%-2rem))] rounded-xl bg-surface p-4 shadow-[0_8px_28px_rgba(0,0,0,.22)]">
-                <p className="text-[11px] font-semibold tracking-[0.08em] text-ink-3 uppercase">
+              <div className="pointer-events-auto mx-4 mt-2 w-[min(280px,calc(100%-2rem))] rounded-card bg-surface p-4 shadow-e2">
+                <p className="text-[12.5px] leading-[17px] font-semibold text-ink-3">
                   Signed in
                 </p>
                 <p className="mt-1 truncate text-[16px] font-bold tracking-[-0.01em]">
@@ -369,7 +369,7 @@ export function Home({
                 <button
                   onClick={signOut}
                   disabled={signingOut}
-                  className="press mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-surface-2 text-[15px] font-medium disabled:opacity-50"
+                  className="press mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-btn bg-surface-2 text-[15px] font-medium disabled:opacity-50"
                 >
                   <LogOut size={16} strokeWidth={2.3} />
                   {signingOut ? 'Signing out' : 'Sign out'}
@@ -389,7 +389,7 @@ export function Home({
                   setFilters(new Set())
                   setSelectedId(null)
                 }}
-                className={`press flex h-11 shrink-0 items-center rounded-full px-4 text-[13px] font-semibold shadow-[0_2px_8px_rgba(0,0,0,.16)] ${
+                className={`press flex h-11 shrink-0 items-center rounded-full px-4 text-[13px] font-semibold shadow-e1 ${
                   filters.size === 0 ? 'bg-ink text-white' : 'bg-surface text-ink'
                 }`}
               >
@@ -403,7 +403,7 @@ export function Home({
                     key={entry.code}
                     onClick={() => toggle(entry.code)}
                     aria-pressed={on}
-                    className={`press flex h-11 shrink-0 items-center gap-1.5 rounded-full px-4 text-[13px] font-semibold shadow-[0_2px_8px_rgba(0,0,0,.16)] ${
+                    className={`press flex h-11 shrink-0 items-center gap-1.5 rounded-full px-4 text-[13px] font-semibold shadow-e1 ${
                       on ? 'bg-ink text-white' : 'bg-surface text-ink'
                     }`}
                   >
@@ -424,7 +424,7 @@ export function Home({
           }`}
           style={{ bottom: sheetHeight + 12 }}
         >
-          <div className="rounded-lg bg-surface/92 px-3 py-2 shadow-[0_2px_10px_rgba(0,0,0,.15)]">
+          <div className="rounded-btn bg-surface/92 px-3 py-2 shadow-e1">
             <p className="text-[11px] font-semibold tracking-[0.04em] text-ink-2 uppercase">
               Pressure
             </p>
@@ -432,7 +432,7 @@ export function Home({
               className="mt-1.5 block h-2 w-24 rounded-full"
               style={{
                 background:
-                  'linear-gradient(90deg,#ffe08a 0%,#ffb020 40%,#f4722b 70%,#d4342a 100%)',
+                  'linear-gradient(90deg,#ffe08a 0%,#ffb020 40%,#f4722b 70%,#b4453a 100%)',
               }}
             />
             <span className="mt-1 flex w-24 justify-between text-[10px] text-ink-3">
@@ -450,7 +450,7 @@ export function Home({
           onClick={() => setReportOpen(true)}
           aria-label="Report a problem"
           style={{ bottom: sheetHeight + 12 }}
-          className={`press absolute right-4 z-[501] flex items-center gap-2 rounded-full bg-ink py-4 pr-5 pl-4 text-white shadow-[0_6px_18px_rgba(0,0,0,.28)] ${
+          className={`press absolute right-4 z-[501] flex items-center gap-2 rounded-full bg-ink py-4 pr-5 pl-4 text-white shadow-e2 ${
             sheet >= 2 ? 'hidden' : ''
           }`}
         >
@@ -488,7 +488,7 @@ export function Home({
         ) : (
           <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-5 pb-6">
             <div className="flex items-baseline justify-between">
-              <h1 className="text-[20px] font-bold tracking-[-0.02em]">
+              <h1 className="text-[18px] leading-[24px] font-bold tracking-[-0.01em] text-heading">
                 {state === 'fixed'
                   ? 'Fixed'
                   : userPoint
@@ -507,7 +507,7 @@ export function Home({
               className="mt-2.5"
             />
 
-            <div className="mt-2 flex gap-1">
+            <div className="segbar mt-2">
               {(
                 [
                   ['all', 'All', inRange.length],
@@ -522,12 +522,10 @@ export function Home({
                     setSelectedId(null)
                   }}
                   aria-pressed={state === id}
-                  className={`press flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-[13px] font-semibold ${
-                    state === id ? 'bg-ink text-white' : 'bg-surface-2 text-ink-2'
-                  }`}
+                  className="press seg"
                 >
                   {label}
-                  <span className={state === id ? 'opacity-70' : 'text-ink-3'}>{count}</span>
+                  <span className="text-ink-3">{count}</span>
                 </button>
               ))}
             </div>
@@ -634,7 +632,7 @@ function SiteBody({
               src={src}
               alt=""
               loading="lazy"
-              className={`rounded-xl bg-surface-2 object-cover ${
+              className={`rounded-card bg-surface-2 object-cover ${
                 photos.length === 1 ? 'h-52 w-full' : 'h-44 w-[68%] shrink-0'
               }`}
             />
@@ -644,7 +642,7 @@ function SiteBody({
 
       <header>
         <div className="flex items-baseline justify-between gap-3">
-          <p className="text-[11px] font-semibold tracking-[0.08em] text-ink-3 uppercase">
+          <p className="text-[12.5px] leading-[17px] font-semibold text-ink-3">
             {site.display.title}
           </p>
           {site.display.caseNumber && (
@@ -679,7 +677,7 @@ function SiteBody({
           <button
             onClick={onAffects}
             aria-pressed={affected}
-            className={`press flex h-12 flex-[2] items-center justify-center gap-2 rounded-lg text-[15px] font-medium ${
+            className={`press flex h-12 flex-[2] items-center justify-center gap-2 rounded-btn text-[15px] font-medium ${
               affected ? 'bg-ink text-white' : 'bg-surface-2 text-ink'
             }`}
           >
@@ -690,7 +688,7 @@ function SiteBody({
 
           <button
             onClick={onOpenForum}
-            className="press flex h-12 flex-1 items-center justify-center gap-2 rounded-lg bg-surface-2 text-[15px] font-medium"
+            className="press flex h-12 flex-1 items-center justify-center gap-2 rounded-btn bg-surface-2 text-[15px] font-medium"
           >
             <MessageSquareText size={17} strokeWidth={2.2} />
             {postCount > 0 ? postCount : 'Discuss'}
@@ -701,14 +699,14 @@ function SiteBody({
 
       {canVerify && (
         <section>
-          <p className="text-[11px] font-semibold tracking-[0.08em] text-ink-3 uppercase">
+          <p className="text-[12.5px] leading-[17px] font-semibold text-ink-3">
             Been past it lately
           </p>
           <div className="mt-2 flex gap-2">
             <button
               onClick={() => onVerdict('fixed')}
               aria-pressed={verdict === 'fixed'}
-              className={`press flex h-12 flex-1 items-center justify-center gap-2 rounded-lg text-[15px] font-medium ${
+              className={`press flex h-12 flex-1 items-center justify-center gap-2 rounded-btn text-[15px] font-medium ${
                 verdict === 'fixed' ? 'bg-ink text-white' : 'bg-surface-2 text-ink'
               }`}
             >
@@ -718,7 +716,7 @@ function SiteBody({
             <button
               onClick={() => onVerdict('still')}
               aria-pressed={verdict === 'still'}
-              className={`press flex h-12 flex-1 items-center justify-center gap-2 rounded-lg text-[15px] font-medium ${
+              className={`press flex h-12 flex-1 items-center justify-center gap-2 rounded-btn text-[15px] font-medium ${
                 verdict === 'still' ? 'bg-ink text-white' : 'bg-surface-2 text-ink'
               }`}
             >

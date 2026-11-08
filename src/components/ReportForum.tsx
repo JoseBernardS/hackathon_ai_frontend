@@ -91,7 +91,7 @@ export function ReportForum({
         <header className="shrink-0 px-5 pt-4 pb-3">
           <div className="flex items-start gap-3">
             {thumbnail && (
-              <img src={thumbnail} alt="" className="size-11 shrink-0 rounded-lg bg-surface-2 object-cover" />
+              <img src={thumbnail} alt="" className="size-11 shrink-0 rounded-btn bg-surface-2 object-cover" />
             )}
             <div className="min-w-0 flex-1">
               <p className="truncate text-[16px] font-bold leading-tight tracking-[-0.01em]">
@@ -152,7 +152,7 @@ export function ReportForum({
           className="shrink-0 border-t border-line px-4 py-3 pb-[max(12px,env(safe-area-inset-bottom))]"
         >
           {replyTo && (
-            <div className="mb-2 flex items-center gap-2 rounded-lg bg-surface-2 px-3 py-2 text-[13px]">
+            <div className="mb-2 flex items-center gap-2 rounded-btn bg-surface-2 px-3 py-2 text-[13px]">
               <CornerDownRight size={14} className="shrink-0 text-ink-3" />
               <span className="min-w-0 flex-1 truncate text-ink-2">
                 Replying to {replyTo.author}

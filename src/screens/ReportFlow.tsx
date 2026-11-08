@@ -188,7 +188,7 @@ export function ReportFlow({
         )}
 
         {error && step !== 'filed' && step !== 'joined' && (
-          <div className="mb-4 flex items-start gap-2 rounded-lg bg-surface-2 px-3 py-2.5">
+          <div className="mb-4 flex items-start gap-2 rounded-btn bg-surface-2 px-3 py-2.5">
             <TriangleAlert size={15} strokeWidth={2.3} className="mt-px shrink-0" />
             <p className="text-[13px] leading-snug">{error}</p>
           </div>
@@ -235,14 +235,14 @@ export function ReportFlow({
 
             <button
               onClick={() => photo && analyse(photo, { lat: meta.lat as number, lng: meta.lng as number })}
-              className="press mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-ink text-[15px] font-medium text-white"
+              className="press mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-btn bg-ink text-[15px] font-medium text-white"
             >
               <MapPin size={17} strokeWidth={2.3} />
               Report it where the photo was taken
             </button>
             <button
               onClick={() => photo && analyse(photo, position)}
-              className="press mt-2 h-12 w-full rounded-lg bg-surface-2 text-[15px] font-medium"
+              className="press mt-2 h-12 w-full rounded-btn bg-surface-2 text-[15px] font-medium"
             >
               Report it where I am now
             </button>
@@ -255,7 +255,7 @@ export function ReportFlow({
               <img
                 src={draft.photo}
                 alt=""
-                className="h-44 w-full rounded-xl bg-surface-2 object-cover"
+                className="h-44 w-full rounded-card bg-surface-2 object-cover"
               />
               {/* Say what the photo could be checked for. Most phones strip
                   this on share, so its absence is normal, not suspicious. */}
@@ -283,16 +283,16 @@ export function ReportFlow({
                     <li key={candidate.siteId}>
                       <button
                         onClick={() => endorse(candidate)}
-                        className="press flex w-full items-center gap-3 rounded-xl border border-line p-2.5 text-left"
+                        className="press flex w-full items-center gap-3 rounded-card bg-surface-2 p-3 text-left"
                       >
                         {candidate.thumbnail ? (
                           <img
                             src={candidate.thumbnail}
                             alt=""
-                            className="size-14 shrink-0 rounded-lg bg-surface-2 object-cover"
+                            className="size-14 shrink-0 rounded-btn bg-surface-2 object-cover"
                           />
                         ) : (
-                          <span className="size-14 shrink-0 rounded-lg bg-surface-2" />
+                          <span className="size-14 shrink-0 rounded-btn bg-surface-2" />
                         )}
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-[15px] font-semibold">
@@ -334,7 +334,7 @@ export function ReportFlow({
               {/* The model can be wrong, and blocking a real pothole is worse
                   than one junk report, so this warns and lets them continue. */}
               {!draft.ai.looksLikeCategory && draft.ai.rejectionReason && (
-                <div className="mt-2 flex items-start gap-2 rounded-lg bg-surface-2 px-3 py-2.5">
+                <div className="mt-2 flex items-start gap-2 rounded-btn bg-surface-2 px-3 py-2.5">
                   <TriangleAlert size={15} strokeWidth={2.3} className="mt-px shrink-0" />
                   <p className="text-[13px] leading-snug">{draft.ai.rejectionReason}</p>
                 </div>
@@ -344,7 +344,7 @@ export function ReportFlow({
                 <p className="mt-2 text-[13px] font-semibold">Please check this before sending.</p>
               )}
 
-              <p className="mt-4 text-[11px] font-semibold tracking-[0.06em] text-ink-3 uppercase">
+              <p className="mt-4 text-[12.5px] leading-[17px] font-semibold text-ink-3">
                 What is it
               </p>
               <div className="mt-2 flex flex-wrap gap-1.5">
@@ -362,7 +362,7 @@ export function ReportFlow({
                 ))}
               </div>
 
-              <p className="mt-4 text-[11px] font-semibold tracking-[0.06em] text-ink-3 uppercase">
+              <p className="mt-4 text-[12.5px] leading-[17px] font-semibold text-ink-3">
                 How bad is it
               </p>
               <div className="mt-2 flex gap-1.5">
@@ -372,7 +372,7 @@ export function ReportFlow({
                     onClick={() => setSeverity(level)}
                     aria-pressed={value.severity === level}
                     aria-label={`Severity ${level} of 5`}
-                    className={`press h-11 flex-1 rounded-lg text-[15px] font-bold ${
+                    className={`press h-11 flex-1 rounded-btn text-[15px] font-bold ${
                       value.severity === level ? 'bg-ink text-white' : 'bg-surface-2 text-ink-2'
                     }`}
                   >
@@ -381,14 +381,14 @@ export function ReportFlow({
                 ))}
               </div>
 
-              <p className="mt-4 text-[11px] font-semibold tracking-[0.06em] text-ink-3 uppercase">
+              <p className="mt-4 text-[12.5px] leading-[17px] font-semibold text-ink-3">
                 Description
               </p>
               <textarea
                 value={value.description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={4}
-                className="mt-2 w-full resize-none rounded-lg bg-surface-2 px-3.5 py-3 text-[15px] outline-none"
+                className="mt-2 w-full resize-none rounded-btn bg-surface-2 px-3.5 py-3 text-[15px] outline-none"
               />
 
               <p className="mt-3 text-[12px] leading-relaxed text-ink-3">
@@ -397,7 +397,7 @@ export function ReportFlow({
 
               <button
                 onClick={file}
-                className="press mt-3 h-12 w-full rounded-lg bg-ink text-[15px] font-medium text-white"
+                className="press mt-3 h-[52px] w-full rounded-btn bg-ink text-[15px] font-medium text-white"
               >
                 File this report
               </button>
@@ -419,7 +419,7 @@ export function ReportFlow({
             </div>
             <button
               onClick={() => onFiled(joined.siteId)}
-              className="press mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-ink text-[15px] font-medium text-white"
+              className="press mt-6 flex h-[52px] w-full items-center justify-center gap-2 rounded-btn bg-ink text-[15px] font-medium text-white"
             >
               <MapPin size={17} strokeWidth={2.4} />
               See it on the map
@@ -459,7 +459,7 @@ export function ReportFlow({
 
             <button
               onClick={() => onFiled(filed.site.id)}
-              className="press mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-ink text-[15px] font-medium text-white"
+              className="press mt-6 flex h-[52px] w-full items-center justify-center gap-2 rounded-btn bg-ink text-[15px] font-medium text-white"
             >
               <Check size={17} strokeWidth={2.4} />
               See it on the map

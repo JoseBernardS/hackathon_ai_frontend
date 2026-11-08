@@ -114,7 +114,7 @@ export function BottomSheet({
   return (
     <div
       ref={hostRef}
-      className="absolute inset-x-0 top-0 z-[600] flex h-full flex-col overscroll-contain rounded-t-2xl bg-surface shadow-[0_-6px_20px_rgba(0,0,0,.14)]"
+      className="absolute inset-x-0 top-0 z-[600] flex h-full flex-col overscroll-contain rounded-t-2xl bg-surface shadow-e2"
       style={{
         transform: `translateY(${current}px)`,
         transition: offset === null ? 'transform 320ms cubic-bezier(0.32,0.72,0,1)' : 'none',

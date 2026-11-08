@@ -1,16 +1,32 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  /* Taken from the LOOP prototype in Downloads/loop-prototype(1). The palette
+     is a desaturated navy rather than black, on near-white blues, and it has
+     exactly one semantic colour: green means an agency actually answered.
+     Nothing else is allowed to be green. */
+  --font-sans: "Figtree", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
-  --color-ink: #000000;
-  --color-ink-2: #545454;
-  --color-ink-3: #8a8a8a;
+  --color-ink: #223642;
+  --color-ink-2: #344b57;
+  --color-ink-3: #657580;
+  --color-heading: #243a47;
   --color-surface: #ffffff;
-  --color-surface-2: #f6f6f6;
-  --color-line: #e2e2e2;
-  --color-loop: #0e9f6e;
-  --color-danger: #d44333;
+  --color-surface-2: #f7f9fa;
+  --color-surface-3: #f2f5f7;
+  --color-line: #e5eef3;
+  --color-action: #297ca3;
+  --color-action-press: #1f6283;
+  --color-answered: #1f7a6b;
+  --color-answered-bg: #e8f4f1;
+  --color-danger: #b4453a;
+
+  --radius-tile: 20px;
+  --radius-card: 16px;
+  --radius-btn: 12px;
+
+  --shadow-e1: 0 0 0 1px rgba(36, 58, 71, 0.07), 0 2px 6px -2px rgba(36, 58, 71, 0.18);
+  --shadow-e2: 0 0 0 1px rgba(36, 58, 71, 0.06), 0 10px 30px -10px rgba(36, 58, 71, 0.28);
 }
 
 :root {
@@ -94,4 +110,61 @@ a {
 
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* The prototype runs headings a shade darker than body copy rather than
+   pure black, which is what keeps the navy palette from going flat. */
+h1,
+h2,
+h3 {
+  color: var(--color-heading);
+}
+
+/* The prototype's segmented control: a tinted track with a white, raised pill
+   for the active segment. The selected state is lifted rather than inverted,
+   which is why its filters never shout the way a black fill does. */
+@utility segbar {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--color-surface-3);
+}
+
+@utility seg {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 36px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-ink-2);
+}
+
+/* A 44px hit area without a 44px box, so the pills can stay 36px tall. */
+.seg::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 44px;
+  transform: translateY(-50%);
+}
+
+.seg[aria-pressed="true"] {
+  background: var(--color-surface);
+  color: var(--color-heading);
+  box-shadow: var(--shadow-e1);
+}
+
+/* Tiles are filled, never outlined. Borders are reserved for dividing rows. */
+@utility tile {
+  border-radius: var(--radius-tile);
+  padding: 16px;
+  background: var(--color-surface-2);
 }

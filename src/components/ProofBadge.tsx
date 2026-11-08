@@ -22,7 +22,7 @@ export function ProofBadge({ proof, counted }: { proof: Proof; counted?: boolean
 
   return (
     <div
-      className={`flex items-start gap-2 rounded-lg px-3 py-2 ${
+      className={`flex items-start gap-2 rounded-btn px-3 py-2 ${
         strong ? 'bg-ink text-white' : 'bg-surface-2 text-ink'
       }`}
     >

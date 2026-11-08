@@ -12,7 +12,7 @@ import type { SiteDisplay } from '../lib/api-client'
 const TONE: Record<SiteDisplay['tone'], string | undefined> = {
   ok: undefined,
   warn: '#f4722b',
-  critical: '#d4342a',
+  critical: '#b4453a',
   done: undefined,
 }
 
@@ -49,12 +49,12 @@ export function SiteRecord({ site, detail }: { site: Site; detail: SiteDetail | 
   const tone = TONE[display.tone]
 
   return (
-    <section className="rounded-xl border border-line p-4">
+    <section className="tile">
       <div className="flex items-center gap-4">
         <LoopMark size={60} total={loop.total} segments={loop.index + 1} ghost animateIn />
 
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold tracking-[0.08em] text-ink-3 uppercase">
+          <p className="text-[12.5px] leading-[17px] font-semibold text-ink-3">
             Stage {loop.index + 1} of {loop.total}
           </p>
           <p className="mt-0.5 text-[18px] leading-tight font-bold tracking-[-0.01em]">

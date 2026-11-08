@@ -20,7 +20,7 @@ const HEAT_GRADIENT = {
   0.0: '#ffe08a',
   0.4: '#ffb020',
   0.7: '#f4722b',
-  1.0: '#d4342a',
+  1.0: '#b4453a',
 }
 
 const iconSvg = (group: string, size: number) => {
@@ -42,11 +42,13 @@ function pinHtml(site: Site, selected: boolean, group: string): string {
   // Same scale as the heat beneath it, so a hot blob and a red ring mean the
   // same thing rather than two different gradings of the same place.
   const p = pressureOf(site)
-  const ring = p >= 0.75 ? '#d4342a' : p >= 0.5 ? '#f4722b' : '#fff'
+  const ring = p >= 0.75 ? '#b4453a' : p >= 0.5 ? '#f4722b' : '#fff'
 
   // A settled place should not compete with an open one for attention. It
   // keeps its pin, because disappearing would hide the outcome, but it steps
   // back: desaturated, and badged with a tick instead of its category.
+  // Green is reserved for "an agency answered", so a settled pin wears it
+  // rather than stepping back in grey.
   const done = isSettled(site)
   const badgeMark = done ? CHECK_SVG : iconSvg(group, badge - 8)
   return `
@@ -56,10 +58,10 @@ function pinHtml(site: Site, selected: boolean, group: string): string {
              style="width:100%;height:100%;object-fit:cover;border-radius:9999px;
                     border:3px solid ${selected ? '#000' : ring};
                     box-shadow:0 2px 8px rgba(0,0,0,.3);background:#e9e9e9;
-                    filter:${done ? 'grayscale(1)' : 'none'};opacity:${done ? 0.75 : 1}" />
+                    filter:${done ? 'grayscale(.75)' : 'none'};opacity:${done ? 0.85 : 1}" />
         <span style="position:absolute;right:-2px;bottom:-2px;width:${badge}px;height:${badge}px;
                      display:flex;align-items:center;justify-content:center;border-radius:9999px;
-                     background:#000;color:#fff;border:2px solid #fff">
+                     background:${done ? '#1f7a6b' : '#223642'};color:#fff;border:2px solid #fff">
           ${badgeMark}
         </span>
       </div>
@@ -255,7 +257,7 @@ export function LoopMap({ sites, group, selectedId, onSelect, user, className = 
       L.circle([user.lat, user.lng], {
         radius: Math.min(user.accuracy, 400),
         stroke: false,
-        fillColor: '#2f6bff',
+        fillColor: '#297ca3',
         fillOpacity: 0.14,
       }),
       L.marker([user.lat, user.lng], {
@@ -263,7 +265,7 @@ export function LoopMap({ sites, group, selectedId, onSelect, user, className = 
         zIndexOffset: 500,
         icon: L.divIcon({
           className: '',
-          html: '<div style="width:16px;height:16px;border-radius:9999px;background:#2f6bff;border:3px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.35)"></div>',
+          html: '<div style="width:16px;height:16px;border-radius:9999px;background:#297ca3;border:3px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.35)"></div>',
           iconSize: [16, 16],
           iconAnchor: [8, 8],
         }),
