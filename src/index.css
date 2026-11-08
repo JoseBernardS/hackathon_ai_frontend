@@ -74,3 +74,19 @@ a {
   font-size: 9px;
   background: rgba(255, 255, 255, 0.72);
 }
+
+/* Used on every pane that scrolls inside the sheet. It was referenced in seven
+   places but never defined, so it did nothing.
+
+   The scrollbar is cosmetic; `overscroll-behavior: contain` is the part that
+   matters. Without it a scroller that reaches its end hands the gesture to the
+   page, which on a phone reads as the sheet bouncing instead of the content
+   scrolling. */
+.no-scrollbar {
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

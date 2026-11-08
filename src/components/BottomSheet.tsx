@@ -13,6 +13,9 @@ interface BottomSheetProps {
 /** Past this, a flick decides the direction regardless of where it ended. */
 const FLICK_VELOCITY = 0.5 // px per ms
 
+/** Height of the drag strip, which the content sits below. */
+const HANDLE_PX = 44
+
 /**
  * A bottom sheet you can actually drag.
  *
@@ -111,7 +114,7 @@ export function BottomSheet({
   return (
     <div
       ref={hostRef}
-      className="absolute inset-x-0 top-0 z-[600] flex h-full flex-col rounded-t-2xl bg-surface shadow-[0_-6px_20px_rgba(0,0,0,.14)]"
+      className="absolute inset-x-0 top-0 z-[600] flex h-full flex-col overscroll-contain rounded-t-2xl bg-surface shadow-[0_-6px_20px_rgba(0,0,0,.14)]"
       style={{
         transform: `translateY(${current}px)`,
         transition: offset === null ? 'transform 320ms cubic-bezier(0.32,0.72,0,1)' : 'none',
@@ -130,7 +133,19 @@ export function BottomSheet({
         <span className="h-1 w-10 rounded-full bg-ink-3/40" />
       </div>
 
-      <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
+      {/*
+        The panel is full height and slid down, so its lower half sits past the
+        bottom of the screen. Left to fill that box, the scroller believes it
+        has room it does not have: nothing scrolls, the overflow is unreachable,
+        and the touch chains to the page and rubber-bands instead. Sizing the
+        content to the part that is actually on screen is what makes it scroll.
+      */}
+      <div
+        className="flex min-h-0 flex-col overflow-hidden"
+        style={{ height: Math.max(0, height - current - HANDLE_PX) }}
+      >
+        {children}
+      </div>
     </div>
   )
 }

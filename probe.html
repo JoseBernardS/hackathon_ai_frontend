@@ -1,0 +1,16 @@
+<!doctype html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><title>probe</title></head>
+<body><div id="root"></div><script type="module" src="/src/probe.tsx"></script>
+<script type="module">
+setTimeout(() => {
+  const rows = document.querySelectorAll('ul li button').length
+  const detailOpen = !!document.querySelector('[aria-label="Report a problem"]') &&
+    !![...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Back to all')
+  const panes = [...document.querySelectorAll('.no-scrollbar')]
+    .map(e => `h=${e.clientHeight} scrollH=${e.scrollHeight} canScroll=${e.scrollHeight > e.clientHeight + 1}`)
+  const sheet = document.querySelector('[aria-label="Resize panel"]')?.parentElement
+  const box = sheet?.lastElementChild
+  document.title = `rows=${rows} detailOpen=${detailOpen} contentBoxH=${box?.clientHeight} || ` + panes.join(' || ')
+}, 11000)
+</script></body></html>
