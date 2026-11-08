@@ -54,7 +54,8 @@ export function latLngOf(site: ApiSite): [number, number] {
 }
 
 /** The county's records shout; the UI does not. */
-function titleCase(value: string): string {
+function titleCase(value: string | null | undefined): string {
+  if (!value) return ''
   return value
     .toLowerCase()
     .replace(/\b[a-z]/g, (c) => c.toUpperCase())
@@ -63,6 +64,7 @@ function titleCase(value: string): string {
     .replace(/\b(Sw|Se|Nw|Ne|N|S|E|W)\b/g, (d) => d.toUpperCase())
 }
 
+/** Empty when the county has no municipality for it, which callers drop. */
 export function placeOf(site: ApiSite): string {
   return titleCase(site.municipality)
 }
@@ -73,7 +75,10 @@ export function placeOf(site: ApiSite): string {
  * list row leads with.
  */
 export function addressOf(site: ApiSite): string {
-  return titleCase(site.address)
+  // A report filed without an address has neither street nor municipality.
+  // The server already words that case in `display.subtitle`, so use its
+  // wording rather than inventing a second one here.
+  return titleCase(site.address) || site.display.subtitle
 }
 
 /**
@@ -132,4 +137,45 @@ export function timeAgo(iso: string): string {
   const months = Math.round(days / 30)
   if (months < 12) return plural(months, 'month')
   return plural(Math.round(months / 12), 'year')
+}
+
+// --- map pressure -----------------------------------------------------------
+
+/** The county publishes targets in business days; everything else is calendar. */
+const BUSINESS_TO_CALENDAR = 7 / 5
+
+/** Diminishing returns: the 28th report says far less than the 2nd. */
+const VOICE_CEILING = 30
+
+function targetDaysOf(site: ApiSite): number {
+  const stated = site.display.overdue?.targetDays
+  if (stated) return stated
+  const match = /(\d+)/.exec(site.sla ?? '')
+  // 90 business days is the county default where nothing else is published.
+  return match ? Math.round(Number(match[1]) * BUSINESS_TO_CALENDAR) : 126
+}
+
+/**
+ * How much a place should shout, from 0 to 1.
+ *
+ * Colouring by report count alone rewards busy streets and hides the real
+ * failure: one person reporting a hole that nobody has touched in ten months.
+ * Colouring by lateness alone does the opposite, treating a single overdue
+ * complaint the same as thirty. Neither is the thing a resident or a
+ * commissioner wants to see, so both go in.
+ *
+ * Delay carries slightly more weight, because being ignored is the civic
+ * failure; volume is evidence of how many people it costs. Voices are scaled
+ * logarithmically so a busy corridor cannot drown out a neglected one, and a
+ * settled site scores zero however loud it once was.
+ */
+export function pressureOf(site: ApiSite): number {
+  if (site.status === 'closed' || site.openCount === 0) return 0
+
+  const target = targetDaysOf(site)
+  // 0.5 at the target date, 1 at twice the target.
+  const delay = Math.min(1, (site.daysOpen ?? 0) / (target * 2))
+  const voices = Math.min(1, Math.log1p(site.reportCount) / Math.log1p(VOICE_CEILING))
+
+  return Math.min(1, 0.55 * delay + 0.45 * voices)
 }

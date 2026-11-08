@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
+  LogOut,
   LocateFixed,
   LocateOff,
   Locate,
@@ -34,10 +35,16 @@ import {
   type Site,
   type SiteDetail,
 } from '../lib/sites'
-import api, { ApiError } from '../lib/api-client'
+import api, { ApiError, type User } from '../lib/api-client'
 import { seedForum, type ForumPost } from '../lib/forum'
 
-export function Home() {
+export function Home({
+  user,
+  onSignedOut,
+}: {
+  user: User | null
+  onSignedOut: () => void
+}) {
   const [sites, setSites] = useState<Site[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [detail, setDetail] = useState<SiteDetail | null>(null)
@@ -52,6 +59,8 @@ export function Home() {
   // client change, which is the point of reading the registry.
   const categories = registry?.categories ?? []
   const [reportOpen, setReportOpen] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
+  const [accountOpen, setAccountOpen] = useState(false)
   // 0 peek, 1 half, 2 nearly full. The map is always full height behind it.
   const [sheet, setSheet] = useState(1)
   const [sheetHeight, setSheetHeight] = useState(0)
@@ -164,6 +173,19 @@ export function Home() {
       return next
     })
 
+  /** Logging out revokes every token for this account, not just this one, so
+   *  the wording says so rather than implying it only affects this phone. */
+  const signOut = async () => {
+    setSigningOut(true)
+    try {
+      await api.session.logout()
+    } finally {
+      // The client clears the token in its own `finally`, so the session is
+      // gone either way and staying on the map would be a lie.
+      onSignedOut()
+    }
+  }
+
   const toggle = (id: string) => {
     setSelectedId(null)
     setFilters((prev) => {
@@ -229,10 +251,18 @@ export function Home() {
         {/* Floating chrome: place chip, then the category filters. */}
         <div className="pointer-events-none absolute inset-x-0 top-0 z-[500] pt-[max(16px,env(safe-area-inset-top))]">
           <div className="flex items-start justify-between px-4">
-            <div className="pointer-events-auto flex items-center gap-2 rounded-full bg-surface px-3 py-2 shadow-[0_2px_10px_rgba(0,0,0,.18)]">
+            {/* The mark is the way into the account. There is no nav bar to
+                hang it off, and a logo is the one thing on a map people
+                already expect to be tappable. */}
+            <button
+              onClick={() => setAccountOpen((open) => !open)}
+              aria-expanded={accountOpen}
+              aria-label="Account"
+              className="press pointer-events-auto flex h-11 items-center gap-2 rounded-full bg-surface px-3 shadow-[0_2px_10px_rgba(0,0,0,.18)]"
+            >
               <LoopMark size={20} />
               <span className="text-[14px] font-bold tracking-[-0.01em]">Miami-Dade</span>
-            </div>
+            </button>
 
             {/* One control for location, where a map's locate button belongs.
                 It used to be a decorative chip that only appeared once a fix
@@ -265,6 +295,40 @@ export function Home() {
               )}
             </button>
           </div>
+
+          {accountOpen && (
+            <>
+              <button
+                onClick={() => setAccountOpen(false)}
+                aria-label="Close account menu"
+                className="pointer-events-auto fixed inset-0 z-[-1] cursor-default"
+              />
+              <div className="pointer-events-auto mx-4 mt-2 w-[min(280px,calc(100%-2rem))] rounded-xl bg-surface p-4 shadow-[0_8px_28px_rgba(0,0,0,.22)]">
+                <p className="text-[11px] font-semibold tracking-[0.08em] text-ink-3 uppercase">
+                  Signed in
+                </p>
+                <p className="mt-1 truncate text-[16px] font-bold tracking-[-0.01em]">
+                  {user?.displayName || user?.phone || 'Your account'}
+                </p>
+                {user?.displayName && user?.phone && (
+                  <p className="mt-0.5 truncate text-[13px] text-ink-3">{user.phone}</p>
+                )}
+
+                <button
+                  onClick={signOut}
+                  disabled={signingOut}
+                  className="press mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-surface-2 text-[15px] font-medium disabled:opacity-50"
+                >
+                  <LogOut size={16} strokeWidth={2.3} />
+                  {signingOut ? 'Signing out' : 'Sign out'}
+                </button>
+
+                <p className="mt-2 text-[12px] leading-snug text-ink-3">
+                  This signs you out everywhere, not just on this device.
+                </p>
+              </div>
+            </>
+          )}
 
           {categories.length > 0 && (
             <div className="no-scrollbar pointer-events-auto mt-2.5 flex gap-2 overflow-x-auto px-4 pb-1">
@@ -308,7 +372,7 @@ export function Home() {
         >
           <div className="rounded-lg bg-surface/92 px-3 py-2 shadow-[0_2px_10px_rgba(0,0,0,.15)]">
             <p className="text-[11px] font-semibold tracking-[0.04em] text-ink-2 uppercase">
-              Reports per area
+              Pressure
             </p>
             <span
               className="mt-1.5 block h-2 w-24 rounded-full"
@@ -318,9 +382,11 @@ export function Home() {
               }}
             />
             <span className="mt-1 flex w-24 justify-between text-[10px] text-ink-3">
-              <span>Fewer</span>
-              <span>More</span>
+              <span>Low</span>
+              <span>High</span>
             </span>
+            {/* Colour means nothing without saying what it measures. */}
+            <p className="mt-1 text-[10px] text-ink-3">reports and time overdue</p>
           </div>
         </div>
 

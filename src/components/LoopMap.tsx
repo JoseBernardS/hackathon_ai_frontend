@@ -3,14 +3,14 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.heat'
-import { latLngOf, type Site } from '../lib/sites'
+import { latLngOf, pressureOf, type Site } from '../lib/sites'
 import { iconForGroup } from './CategoryIcon'
 import { MIAMI_DADE_BOUNDS, MIAMI_DADE_CENTRE } from '../lib/geo'
 
 /** Pins closer than this many screen pixels collapse into one cluster. */
 const CLUSTER_PX = 72
 
-/** Warm ramp: more reports in an area reads as hotter. */
+/** Warm ramp: more pressure reads as hotter. See `pressureOf`. */
 const HEAT_GRADIENT = {
   0.0: '#ffe08a',
   0.4: '#ffb020',
@@ -34,8 +34,10 @@ function pinHtml(site: Site, selected: boolean, group: string): string {
   const d = selected ? base + 12 : base
   const badge = selected ? 22 : 19
   const photo = site.thumbnails[0] ?? ''
-  // The server grades tone per road against that road's own target.
-  const ring = site.display.tone === 'critical' ? '#d4342a' : site.display.tone === 'warn' ? '#f4722b' : '#fff'
+  // Same scale as the heat beneath it, so a hot blob and a red ring mean the
+  // same thing rather than two different gradings of the same place.
+  const p = pressureOf(site)
+  const ring = p >= 0.75 ? '#d4342a' : p >= 0.5 ? '#f4722b' : '#fff'
   return `
     <div style="display:flex;flex-direction:column;align-items:center">
       <div style="position:relative;width:${d}px;height:${d}px">
@@ -142,7 +144,7 @@ export function LoopMap({ sites, group, selectedId, onSelect, user, className = 
 
     const points = sites.map((site) => {
       const [lat, lng] = latLngOf(site)
-      return [lat, lng, Math.min(1, site.reportCount / 20)] as [number, number, number]
+      return [lat, lng, pressureOf(site)] as [number, number, number]
     })
     const minOpacity = zoom >= 15 ? 0.14 : 0.4
 

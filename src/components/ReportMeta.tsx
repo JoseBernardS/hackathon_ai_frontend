@@ -29,10 +29,13 @@ export function ReportMeta({ site, variant, className = '' }: ReportMetaProps) {
   // With one category enabled, naming it on every row says nothing and costs
   // the timestamp its space.
   const manyCategories = useMultiCategory()
-  const parts =
+  // A site with no municipality yields an empty place, which would otherwise
+  // render as a stray separator.
+  const parts = (
     variant === 'row'
       ? [...(manyCategories ? [meta.category(site)] : []), meta.place(site), meta.when(site)]
       : [meta.when(site), meta.reportsLong(site)]
+  ).filter(Boolean)
 
   return (
     <span className={`inline-flex items-center gap-1.5 ${className}`}>

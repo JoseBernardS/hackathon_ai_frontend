@@ -8,7 +8,7 @@ type View = 'loading' | 'signIn' | 'onboarding' | 'signedIn'
 
 export default function App() {
   const [view, setView] = useState<View>('loading')
-  const [, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [phone, setPhone] = useState('')
 
   // Restore the session on load. The client clears the token itself on a 401.
@@ -53,7 +53,13 @@ export default function App() {
     return (
       <div className="flex h-full justify-center bg-[#f0f0f0]">
         <div className="relative flex h-full w-full max-w-[430px] flex-col overflow-hidden bg-surface">
-          <Home />
+          <Home
+            user={user}
+            onSignedOut={() => {
+              setUser(null)
+              setView('signIn')
+            }}
+          />
         </div>
       </div>
     )

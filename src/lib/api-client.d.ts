@@ -216,8 +216,9 @@ export interface ApiSite {
   lastReportedAt: string
   oldestOpenAt: string | null
   avgDaysToClose: number | null
-  address: string
-  municipality: string
+  /** Null on a report filed without one; `display.subtitle` covers that case. */
+  address: string | null
+  municipality: string | null
   department: string | null
   sla: string | null
   /** False where the city, not the county, maintains the road. */
