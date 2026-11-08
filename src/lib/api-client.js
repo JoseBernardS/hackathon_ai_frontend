@@ -3,7 +3,12 @@
 //
 //   import { api, auth } from './api-client';
 
-const BASE_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:4000';
+// Must be written as `import.meta.env.VITE_API_URL`, with no optional chaining
+// on `import.meta`. Vite inlines this at build time by matching that exact
+// shape; `import.meta?.env?.X` compiles to a runtime lookup instead, and a
+// production bundle's `import.meta.env` carries no custom VITE_* keys, so it
+// silently falls back to localhost once deployed.
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 const TOKEN_KEY = 'auth_token';
 
 // --- token storage ----------------------------------------------------------
@@ -166,11 +171,56 @@ export const sites = {
 
 export const reports = {
   /**
-   * File a new report. If a site already exists within the category's dedupe
-   * radius the report joins it and the map gains no new pin — check
-   * `mergedIntoExistingSite` in the response.
+   * Step 1 of the assisted flow: upload the photo, get a draft back.
+   *
+   * The response carries `ai.looksLikeCategory`, `ai.confidence` and a
+   * `proposal` ({ subType, severity, description, hazards }). Show the proposal
+   * to the user and let them edit every field — then pass `draftId` to
+   * `confirm()`. Nothing is on the map and nothing has reached the county yet.
+   *
+   * `ai.available: false` means the model could not be reached; `proposal` is
+   * then mostly empty and the user fills the form in themselves. Render the
+   * same screen either way.
    */
-  create: ({ category, lat, lng, subType, description, address, photo } = {}) => {
+  analyze: ({ category, lat, lng, address, photo } = {}) => {
+    const form = new FormData();
+    form.append('category', category);
+    form.append('lat', lat);
+    form.append('lng', lng);
+    if (address) form.append('address', address);
+    form.append('photo', photo);
+    return request('/api/reports/analyze', { method: 'POST', form, authed: true });
+  },
+
+  /**
+   * Step 2: file the draft the user just agreed to.
+   *
+   * `confirmed` and `consent` must both be true — filing sends the user's name,
+   * email and phone to a public county case, so the API will not assume either.
+   * Send back only the fields they changed; anything omitted keeps the AI's
+   * value. The photo is reused from the draft and is not uploaded again.
+   */
+  confirm: ({ category, draftId, subType, severity, description, address } = {}) =>
+    request('/api/reports', {
+      method: 'POST',
+      authed: true,
+      body: {
+        category,
+        draftId,
+        confirmed: true,
+        consent: true,
+        subType,
+        severity,
+        description,
+        address,
+      },
+    }),
+
+  /**
+   * The direct path, with no AI step: a photo and a filled-in form in one call.
+   * Still supported and unchanged.
+   */
+  create: ({ category, lat, lng, subType, description, address, photo, consent = true } = {}) => {
     const form = new FormData();
     form.append('category', category);
     form.append('lat', lat);
@@ -179,6 +229,7 @@ export const reports = {
     if (description) form.append('description', description);
     if (address) form.append('address', address);
     if (photo) form.append('photo', photo);
+    form.append('consent', String(consent));
     return request('/api/reports', { method: 'POST', form, authed: true });
   },
 
